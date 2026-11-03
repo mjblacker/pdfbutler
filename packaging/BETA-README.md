@@ -23,7 +23,8 @@ show a reputation warning. Do not disable system-wide security settings to run a
 
 Close all PDF Butler windows and extract the next ZIP into a fresh folder. Do not merge a
 new version into a running or older installation. Update optional Windows registration if
-you move the application (see `DEPLOYMENT.md`).
+you move the application (see `DEPLOYMENT.md`). If you used `Install-PdfButler.ps1`, run the
+new build's installer: it asks before replacing the old installation.
 
 When reporting a problem, include the build/ZIP name, OS version and reproduction steps.
 Do not send private PDFs or screenshots containing sensitive information without approval.

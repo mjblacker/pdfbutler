@@ -104,8 +104,10 @@ For a per-user installation, run from the extracted folder:
 ```
 
 This creates a Start menu shortcut and registers the app for PDFs. No administrator rights are needed.
-The destination must be new or empty. For updates, close the app, unregister the old installation,
-move the old folder aside, then install the new build. Never copy a partial publish over a running app.
+The destination must be new, empty, or an existing PDF Butler installation. To update, close the app and
+run the new build's installer: it asks before deleting the old installation folder and copying the new one
+(`-Force` skips the question). It refuses non-empty folders that don't contain `PdfButler.exe`, and refuses
+while PDF Butler is running from the install folder.
 
 If you keep the portable folder where it is, register it **in place** instead of installing a copy:
 
