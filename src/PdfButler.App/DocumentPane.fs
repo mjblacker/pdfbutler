@@ -26,6 +26,10 @@ open PdfButler.App.PdfView
 /// Schemes that may be opened (after confirmation). Everything else, including file:, is refused.
 let allowedSchemes = set [ "http"; "https"; "mailto" ]
 
+/// Keys typed here are text, so plain-key shortcuts (Space pan/page, N, P, arrows...) must not fire.
+/// Form filling must extend this for a focused form field, so Space types a space instead of panning.
+let isTypingTarget (source: obj) = source :? TextBox
+
 type DocumentPane(host: Window, engine: RendererEngine, requestOpen: unit -> unit) as this =
     inherit ContentControl()
 
@@ -263,6 +267,17 @@ type DocumentPane(host: Window, engine: RendererEngine, requestOpen: unit -> uni
 
     let focusCanvas () = canvas.Focus() |> ignore
 
+    // ---- space-bar pan ----------------------------------------------------------------------------------
+
+    let mutable spacePan = SpacePan.Idle
+
+    let setSpacePan (s: SpacePan.State) =
+        spacePan <- s
+        canvas.HandMode <- SpacePan.isHeld s
+
+    /// The key-up may never arrive (focus moved, window deactivated): drop the hold without paging.
+    let cancelSpacePan () = if SpacePan.isHeld spacePan then setSpacePan (SpacePan.cancel spacePan)
+
     let showNotices (info: DocumentInfo) =
         let notices =
             [ if info.Forms = XfaFull then "Dynamic XFA form, not supported: content may be missing."
@@ -491,6 +506,9 @@ type DocumentPane(host: Window, engine: RendererEngine, requestOpen: unit -> uni
             loadingFirstPage <- false
             setCentre centre)
         canvas.LinkActivated.Add handleLink
+        canvas.PanStarted.Add(fun () -> spacePan <- SpacePan.panned spacePan)
+        canvas.LostFocus.Add(fun _ -> cancelSpacePan ())
+        host.Deactivated.Add(fun _ -> cancelSpacePan ())
         let copyItem = MenuItem(Header = "Copy", InputGesture = KeyGesture(Key.C, KeyModifiers.Control))
         copyItem.Click.Add(fun _ -> copySelection ())
         let menu = ContextMenu()
@@ -543,6 +561,7 @@ type DocumentPane(host: Window, engine: RendererEngine, requestOpen: unit -> uni
     member _.CurrentPageIndex = if hasDoc () then Some canvas.CurrentPage else None
     member _.SetActive(value) =
         active <- value
+        if not value then cancelSpacePan ()
         canvas.SetActive value
         if value then focusCanvas ()
 
@@ -670,7 +689,7 @@ type DocumentPane(host: Window, engine: RendererEngine, requestOpen: unit -> uni
             let ctrl = e.KeyModifiers.HasFlag KeyModifiers.Control
             let shift = e.KeyModifiers.HasFlag KeyModifiers.Shift
             let alt = e.KeyModifiers.HasFlag KeyModifiers.Alt
-            let inText = (e.Source :? TextBox)
+            let inText = isTypingTarget e.Source
             let doc = hasDoc ()
             let go (msg: Viewer.Msg) = if doc then canvas.Dispatch msg
             let isPlus = e.Key = Key.OemPlus || e.Key = Key.Add
@@ -700,7 +719,8 @@ type DocumentPane(host: Window, engine: RendererEngine, requestOpen: unit -> uni
                 | Key.C when ctrl -> copySelection (); true
                 | Key.PageDown -> go Viewer.PageDown; true
                 | Key.PageUp -> go Viewer.PageUp; true
-                | Key.Space -> go (if shift then Viewer.PageUp else Viewer.PageDown); true
+                // Hold to pan; a tap pages on release (see OnKeyUp).
+                | Key.Space -> (if doc then setSpacePan (SpacePan.press shift spacePan)); true
                 | Key.Home when not alt -> go Viewer.FirstPage; true
                 | Key.End when not alt -> go Viewer.LastPage; true
                 | Key.Down -> go (Viewer.ScrollBy(0.0, 40.0)); true
@@ -711,6 +731,18 @@ type DocumentPane(host: Window, engine: RendererEngine, requestOpen: unit -> uni
                 | Key.P when e.KeyModifiers = KeyModifiers.None -> go Viewer.PreviousPage; true
                 | _ -> false
             if handled then e.Handled <- true
+
+    override this.OnKeyUp(e: KeyEventArgs) =
+        base.OnKeyUp e
+        if e.Key = Key.Space && SpacePan.isHeld spacePan then
+            let s, action = SpacePan.release spacePan
+            setSpacePan s
+            if hasDoc () then
+                match action with
+                | SpacePan.PageDown -> canvas.Dispatch Viewer.PageDown
+                | SpacePan.PageUp -> canvas.Dispatch Viewer.PageUp
+                | SpacePan.NoAction -> ()
+            e.Handled <- true
 
     member this.Close() =
         searchTimer.Stop()

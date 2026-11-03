@@ -55,8 +55,11 @@ type PageCanvas() as this =
     let mutable firstPresented = false
     let mutable initialContentReady = false
     let mutable active = true
+    /// Temporary pan tool (Space held): left-drag pans everywhere, ignoring text and links.
+    let mutable handMode = false
 
     let stateChanged = Event<unit>()
+    let panStarted = Event<unit>()
     let linkActivated = Event<LinkTarget>()
     let searchChanged = Event<SearchInfo>()
     let selectionChanged = Event<unit>()
@@ -238,6 +241,20 @@ type PageCanvas() as this =
     /// First visible pixels or a page-error placeholder, not merely metadata being available.
     [<CLIEvent>]
     member _.InitialContentReady = initialContentReadyEvent.Publish
+
+    /// A left-button pan drag started in hand mode.
+    [<CLIEvent>]
+    member _.PanStarted = panStarted.Publish
+
+    /// Hand mode is set by the pane while Space is held. Turning it off does not end a drag in progress.
+    member _.HandMode
+        with get () = handMode
+        and set (value: bool) =
+            if handMode <> value then
+                handMode <- value
+                match drag with
+                | Panning _ -> ()
+                | _ -> this.Cursor <- new Cursor(if value then StandardCursorType.SizeAll else StandardCursorType.Arrow)
 
     member _.Document = doc
     member _.State = state
@@ -465,9 +482,15 @@ type PageCanvas() as this =
         this.Focus() |> ignore
         let p = e.GetPosition this
         let props = e.GetCurrentPoint(this).Properties
-        if props.IsMiddleButtonPressed then
+        let startPan () =
             drag <- Panning p
+            this.Cursor <- new Cursor(StandardCursorType.SizeAll)
             e.Pointer.Capture this
+        if props.IsMiddleButtonPressed then
+            startPan ()
+        elif props.IsLeftButtonPressed && handMode then
+            startPan ()
+            panStarted.Trigger()
         elif props.IsLeftButtonPressed then
             match hitPage p with
             | None ->
@@ -529,6 +552,7 @@ type PageCanvas() as this =
                 | _ -> requestText page Priority.Interactive
             | None -> ()
         | PendingLink(_, _, start) when abs (p.X - start.X) + abs (p.Y - start.Y) > 6.0 -> drag <- NoDrag
+        | _ when handMode -> this.Cursor <- new Cursor(StandardCursorType.SizeAll)
         | _ ->
             // Hover feedback.
             let cursor =
@@ -554,6 +578,7 @@ type PageCanvas() as this =
         match drag with
         | PendingLink(link, _, _) -> linkActivated.Trigger link.Target
         | Selecting _ -> selectionChanged.Trigger()
+        | Panning _ -> this.Cursor <- new Cursor(if handMode then StandardCursorType.SizeAll else StandardCursorType.Arrow)
         | _ -> ()
         drag <- NoDrag
         e.Pointer.Capture null

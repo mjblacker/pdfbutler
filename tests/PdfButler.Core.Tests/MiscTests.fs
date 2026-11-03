@@ -129,3 +129,39 @@ let ``a typed page number round-trips through the page box`` () =
             | Some q -> q = p || PageInput.pageBoxText labels q = PageInput.pageBoxText labels p
             | None -> false))
     |> Check.QuickThrowOnFailure
+
+[<Fact>]
+let ``space tap pages, space held for a drag only pans`` () =
+    let tap shift = SpacePan.Idle |> SpacePan.press shift |> SpacePan.release
+    Assert.Equal((SpacePan.Idle, SpacePan.PageDown), tap false)
+    Assert.Equal((SpacePan.Idle, SpacePan.PageUp), tap true)
+    // Auto-repeat while held keeps the Shift state from the first press.
+    let repeated = SpacePan.Idle |> SpacePan.press true |> SpacePan.press false |> SpacePan.press false
+    Assert.Equal((SpacePan.Idle, SpacePan.PageUp), SpacePan.release repeated)
+    // Once a drag happened, releasing does not page.
+    let dragged = SpacePan.Idle |> SpacePan.press false |> SpacePan.panned |> SpacePan.press false
+    Assert.Equal((SpacePan.Idle, SpacePan.NoAction), SpacePan.release dragged)
+    // Release without press, pan without hold, and cancel are inert.
+    Assert.Equal((SpacePan.Idle, SpacePan.NoAction), SpacePan.release SpacePan.Idle)
+    Assert.Equal(SpacePan.Idle, SpacePan.panned SpacePan.Idle)
+    Assert.Equal(SpacePan.Idle, SpacePan.cancel (SpacePan.press false SpacePan.Idle))
+
+[<Fact>]
+let ``space pan never pages after any pan, whatever the key sequence`` () =
+    let step = Gen.elements [ 0; 1; 2; 3; 4 ] |> Gen.listOf
+    Prop.forAll (Arb.fromGen step) (fun steps ->
+        // 0 press, 1 shift+press, 2 pan, 3 release, 4 cancel. Track whether this hold has panned.
+        let mutable s = SpacePan.Idle
+        let mutable pannedThisHold = false
+        steps
+        |> List.forall (fun k ->
+            match k with
+            | 0 | 1 -> s <- SpacePan.press (k = 1) s; true
+            | 2 -> (if SpacePan.isHeld s then pannedThisHold <- true); s <- SpacePan.panned s; true
+            | 3 ->
+                let wasHeld = SpacePan.isHeld s
+                let s', action = SpacePan.release s
+                let ok = s' = SpacePan.Idle && ((action = SpacePan.NoAction) = (pannedThisHold || not wasHeld))
+                s <- s'; pannedThisHold <- false; ok
+            | _ -> s <- SpacePan.cancel s; pannedThisHold <- false; s = SpacePan.Idle))
+    |> Check.QuickThrowOnFailure

@@ -295,6 +295,72 @@ let ``drag-select across two lines then ctrl+c copies the text`` () =
     Assert.False(w.Canvas.HasSelection)
     w.Close()
 
+[<AvaloniaFact>]
+let ``space tap pages down, shift+space pages up`` () =
+    let w, _ = newWindow ()
+    openFile w (synthetic "space-tap.pdf" inkDoc)
+    let y0 = w.Canvas.State.Offset.Y
+    press w Key.Space RawInputModifiers.None
+    let y1 = w.Canvas.State.Offset.Y
+    Assert.True(y1 > y0 + 100.0, $"space should page down: {y0} -> {y1}")
+    Assert.False(w.Canvas.HandMode)
+    press w Key.Space RawInputModifiers.Shift
+    Assert.Equal(y0, w.Canvas.State.Offset.Y, 3)
+    w.Close()
+
+[<AvaloniaFact>]
+let ``holding space and dragging pans instead of selecting, and does not page`` () =
+    let w, _ = newWindow ()
+    let spec = doc [ { letter with Texts = [ text 72.0 700.0 12.0 "Hello first line"; text 72.0 680.0 12.0 "Second line here" ] }; letter ]
+    openFile w (synthetic "space-pan.pdf" spec)
+    // Zoomed in so both directions can scroll; text layer loaded so a plain drag would select.
+    for _ in 1..4 do press w Key.OemPlus RawInputModifiers.Control
+    w.Canvas.Dispatch(Viewer.ScrollTo { X = 100.0; Y = 100.0 })
+    w.MouseMove(windowPointOf w 0 100.0 100.0, RawInputModifiers.None)
+    settle w
+    let start = windowPointOf w 0 100.0 88.0
+    Assert.True(w.Canvas.Bounds.Contains(w.TranslatePoint(start, w.Canvas).Value), "drag must start on the canvas")
+    let before = w.Canvas.State.Offset
+    w.KeyPress(Key.Space, RawInputModifiers.None, PhysicalKey.None, null)
+    w.KeyPress(Key.Space, RawInputModifiers.None, PhysicalKey.None, null) // auto-repeat
+    pumpFor 5
+    Assert.True(w.Canvas.HandMode)
+    w.MouseMove(start, RawInputModifiers.None)
+    w.MouseDown(start, MouseButton.Left, RawInputModifiers.None)
+    w.MouseMove(Point(start.X - 30.0, start.Y - 20.0), RawInputModifiers.LeftMouseButton)
+    w.MouseMove(Point(start.X - 60.0, start.Y - 40.0), RawInputModifiers.LeftMouseButton)
+    w.MouseUp(Point(start.X - 60.0, start.Y - 40.0), MouseButton.Left, RawInputModifiers.None)
+    w.KeyRelease(Key.Space, RawInputModifiers.None, PhysicalKey.None, null)
+    pumpFor 5
+    let after = w.Canvas.State.Offset
+    Assert.Equal(before.X + 60.0, after.X, 3)
+    Assert.Equal(before.Y + 40.0, after.Y, 3)
+    Assert.False(w.Canvas.HasSelection)
+    Assert.False(w.Canvas.HandMode)
+    // Without Space the same drag selects text again.
+    let p = windowPointOf w 0 70.0 88.0
+    w.MouseMove(p, RawInputModifiers.None)
+    w.MouseDown(p, MouseButton.Left, RawInputModifiers.None)
+    w.MouseMove(Point(p.X + 120.0, p.Y), RawInputModifiers.LeftMouseButton)
+    w.MouseUp(Point(p.X + 120.0, p.Y), MouseButton.Left, RawInputModifiers.None)
+    pumpFor 5
+    Assert.True(w.Canvas.HasSelection)
+    w.Close()
+
+[<AvaloniaFact>]
+let ``space in a text box types instead of panning or paging`` () =
+    let w, _ = newWindow ()
+    openFile w (synthetic "space-text.pdf" inkDoc)
+    let y0 = w.Canvas.State.Offset.Y
+    press w Key.F RawInputModifiers.Control
+    w.KeyPress(Key.Space, RawInputModifiers.None, PhysicalKey.None, null)
+    pumpFor 5
+    Assert.False(w.Canvas.HandMode)
+    w.KeyRelease(Key.Space, RawInputModifiers.None, PhysicalKey.None, null)
+    pumpFor 5
+    Assert.Equal(y0, w.Canvas.State.Offset.Y, 3)
+    w.Close()
+
 let private linkDoc =
     { doc
         [ { letter with

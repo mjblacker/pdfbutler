@@ -11,9 +11,19 @@ Last updated: 2026-11-03. This file continues `reports/Lightweight PDF viewer bu
 | 3. Hardening (security policy, resource bounds, keyboard/DPI, packaging) | Engine limits/inert actions/typed errors, tab bounds, renderer crash isolation and private deployment packaging done. Desktop DPI/accessibility and OS sandbox still outstanding. |
 | 4. Private beta | Not started. |
 
-Tests: **61 core + 167 engine (129 corpus documents + 1 extended) + 52 app/IPC/lifecycle = 280**, all passing on Windows.
+Tests: **63 core + 167 engine (129 corpus documents + 1 extended) + 58 app/IPC/lifecycle = 288**, all passing on Windows.
 
-### Latest increment: many tabs, settings and session restore
+### Latest increment: space-bar pan
+
+- **Hold Space and drag** to pan, anywhere on the page: text is not selected and links are not followed. The cursor shows a move
+  arrow while Space is held. A **tap** of Space still pages down (Shift+Space up), but now on key *release*, and only if no drag happened.
+  Middle-drag and dragging empty space still pan as before. The tap/hold rule is pure (`Core/SpacePan.fs`) with tests.
+- The hold is dropped without paging if the canvas loses focus, the window is deactivated or the tab is switched, so it never gets stuck.
+- Space does nothing special while typing in a text box (`DocumentPane.isTypingTarget`). **Form filling:** a focused form field must
+  count as a typing target there, so Space types a space in a field. Panning with Space then only works once the field loses focus
+  (click the page or Esc); middle-drag still pans at any time.
+
+### Previous increment: many tabs, settings and session restore
 
 - **Tab strip without a scroll bar.** Tabs shrink from 220 to 110 DIPs to fit, then the strip scrolls: ◀ ▶ arrows and an
   "all open PDFs" ⌄ list with a filter appear only when tabs overflow (the list shows from two tabs). The mouse wheel scrolls
@@ -134,7 +144,7 @@ Only http, https and mailto links are offered (after a confirmation showing the 
 
 Keyboard: Ctrl+O open, Ctrl+W close tab, Ctrl+, settings, Ctrl+Tab / Ctrl+Shift+Tab next/previous tab, Ctrl+F find, F3 / Shift+F3 next/previous hit, Esc (close search, then clear selection), Ctrl+G page box,
 Ctrl+C copy, Ctrl+= / Ctrl+− zoom, Ctrl+0 fit page, Ctrl+1 100%, Ctrl+2 fit width, Ctrl+Shift+= / Ctrl+Shift+− rotate,
-PageUp/PageDown, Space/Shift+Space, Home/End, arrows, N/P, Alt+Left/Right. While typing in a box, only the Ctrl, F3, Esc and Alt shortcuts apply.
+PageUp/PageDown, Space/Shift+Space (tap to page, hold and drag to pan), Home/End, arrows, N/P, Alt+Left/Right. While typing in a box, only the Ctrl, F3, Esc and Alt shortcuts apply.
 
 ### UI tests (`tests/PdfButler.App.Tests`)
 
