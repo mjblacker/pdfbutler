@@ -1,0 +1,50 @@
+name: Build and test
+
+on:
+  push:
+  pull_request:
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+jobs:
+  test:
+    strategy:
+      fail-fast: false
+      matrix:
+        include:
+          - os: windows-latest
+            rid: win-x64
+          - os: ubuntu-24.04
+            rid: linux-x64
+    runs-on: ${{ matrix.os }}
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-dotnet@v4
+        with:
+          global-json-file: global.json
+      - name: Linux desktop libraries and deterministic fallback fonts
+        if: runner.os == 'Linux'
+        run: |
+          sudo apt-get update
+          sudo apt-get install -y libfontconfig1 libx11-6 libice6 libsm6 libglib2.0-0t64 libgl1 fonts-liberation fonts-dejavu-core
+      - uses: actions/cache@v4
+        with:
+          path: corpus/cache
+          key: corpus-${{ hashFiles('corpus/manifest.json') }}
+      - run: dotnet restore PdfButler.slnx
+      - name: Fetch and verify pinned core corpus (never extended/private files)
+        run: dotnet run --project tools/PdfButler.Corpus -- fetch
+      - run: dotnet test PdfButler.slnx --configuration Release --logger "trx;LogFileName=tests.trx" --results-directory artifacts/test-results
+      - name: Publish private deployment folder
+        shell: pwsh
+        run: ./tools/Publish.ps1 -Runtime ${{ matrix.rid }}
+      - name: Test results only (no document images or extracted text)
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: test-results-${{ matrix.rid }}
+          path: artifacts/test-results/*.trx
+          if-no-files-found: ignore
+          retention-days: 7

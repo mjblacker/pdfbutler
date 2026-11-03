@@ -1,0 +1,10 @@
+<svg xmlns="http://www.w3.org/2000/svg" width="256" height="256" viewBox="0 0 256 256">
+  <title>PDF Butler — a folded document in a bow tie</title>
+  <rect x="8" y="8" width="240" height="240" rx="52" fill="#163342"/>
+  <path d="M66 38H150L190 78V218H66Z" fill="#f7f5ef"/>
+  <path d="M150 38V78H190Z" fill="#65c9bc"/>
+  <path d="M94 100H162M94 118H148" fill="none" stroke="#b4c5c9" stroke-width="8" stroke-linecap="round"/>
+  <path d="M89 150L122 166L89 182ZM167 150L134 166L167 182Z" fill="#163342"/>
+  <circle cx="128" cy="166" r="9" fill="#65c9bc"/>
+  <circle cx="128" cy="199" r="4" fill="#163342"/>
+</svg>

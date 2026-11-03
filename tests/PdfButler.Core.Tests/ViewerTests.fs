@@ -12,9 +12,11 @@ let private vp = { W = 1000.0; H = 700.0 }
 let private start n = create (pages n) vp
 
 [<Fact>]
-let ``a new view starts at the top in fit-width mode`` () =
+let ``a new view starts at the top at 100 percent even on a large screen`` () =
     let s = start 10
-    Assert.Equal(FitWidth, s.Mode)
+    Assert.Equal(Manual, s.Mode)
+    Assert.Equal(1.0, s.Zoom)
+    Assert.Equal(1.0, (update (ViewportResized { W = 3840.0; H = 2160.0 }) s).Zoom)
     Assert.Equal(0, currentPage s)
     Assert.Equal(0.0, s.Offset.Y)
 
@@ -47,7 +49,7 @@ let ``zoom steps move through the preset list and stay in range`` () =
 
 [<Fact>]
 let ``resizing in fit-width mode refits and keeps the reading position`` () =
-    let s = start 50 |> update (GoToPage 20)
+    let s = start 50 |> update (SetMode FitWidth) |> update (GoToPage 20)
     let s2 = update (ViewportResized { W = 600.0; H = 700.0 }) s
     Assert.Equal(FitWidth, s2.Mode)
     Assert.True(s2.Zoom < s.Zoom)

@@ -34,6 +34,46 @@ let private inkDoc =
 let private dark (f: Frame) (p: Point) = f.LumAt p < 60
 let private light (f: Frame) (p: Point) = f.LumAt p > 200
 
+[<Fact>]
+let ``window placement fits disconnected monitors and changed DPI`` () =
+    let saved: WindowPlacement.Placement =
+        { X = -3000; Y = 1500; Width = 2400.0; Height = 1400.0; Maximized = true }
+    let area = PixelRect(0, 0, 1920, 1040)
+    let p = WindowPlacement.constrain area 1.5 saved
+    Assert.Equal(0, p.X)
+    Assert.True(p.Y >= 0)
+    Assert.True(float p.X + p.Width * 1.5 <= 1920.0)
+    Assert.True(float p.Y + (p.Height + 40.0) * 1.5 <= 1041.0)
+    Assert.True(p.Maximized)
+    let left = WindowPlacement.constrain (PixelRect(-1920, 0, 1920, 1080)) 1.0 { saved with X = -1800; Y = 40; Width = 900; Height = 700 }
+    Assert.Equal(-1800, left.X)
+    Assert.Equal(40, left.Y)
+
+[<AvaloniaFact>]
+let ``window close can cancel close current or close all without duplicate prompts`` () =
+    let w, _ = newWindow ()
+    openFile w (synthetic "close-a.pdf" inkDoc)
+    openFile w (synthetic "close-b.pdf" inkDoc)
+    let answer = System.Threading.Tasks.TaskCompletionSource<Dialogs.CloseChoice>()
+    let mutable prompts = 0
+    w.ConfirmClose <- fun _ -> prompts <- prompts + 1; answer.Task
+    w.Close()
+    w.Close()
+    Assert.Equal(1, prompts)
+    Assert.True(w.IsVisible)
+    answer.SetResult Dialogs.Cancel
+    pumpFor 20
+    Assert.Equal(2, w.TabCount)
+    w.ConfirmClose <- fun _ -> System.Threading.Tasks.Task.FromResult Dialogs.Current
+    w.Close()
+    pumpUntil "current tab closed" (fun () -> w.TabCount = 1)
+    Assert.True(w.IsVisible)
+    Assert.Equal("close-a.pdf", w.TabNames[0])
+    openFile w (synthetic "close-b.pdf" inkDoc)
+    w.ConfirmClose <- fun _ -> System.Threading.Tasks.Task.FromResult Dialogs.All
+    w.Close()
+    pumpUntil "all tabs closed" (fun () -> not w.IsVisible)
+
 [<AvaloniaFact>]
 let ``open shows the first page with ink where the PDF puts it`` () =
     let w, _ = newWindow ()
@@ -297,6 +337,7 @@ let ``wrong password asks again, cancel shows the error panel`` () =
     Assert.Equal(DocumentShown, w.Centre)
     // Cancel.
     calls.Passwords.Clear()
+    w.CloseDocument() // Opening an already-open file now selects its tab instead of re-opening it.
     openFile w path
     Assert.Equal(1, calls.Passwords.Count)
     match w.Centre with
@@ -306,6 +347,112 @@ let ``wrong password asks again, cancel shows the error panel`` () =
     | c -> failwith $"expected error panel, got {c}"
     Assert.Null(w.Canvas.Document)
     w.Close()
+
+[<AvaloniaFact>]
+let ``tabs retain independent state and inactive tabs release raster memory`` () =
+    let w, _ = newWindow ()
+    openFile w (synthetic "tabs-a.pdf" inkDoc)
+    let a = w.Canvas
+    let aDoc = a.Document
+    Assert.Equal(1.0, a.State.Zoom)
+    a.Dispatch(Viewer.GoToPage 3)
+    a.Dispatch(Viewer.ZoomTo(1.5, None))
+    a.Dispatch Viewer.RotateClockwise
+    press w Key.F RawInputModifiers.Control
+    typeText w "First"
+    w.RunSearchNow()
+    pumpUntil "tab A search" (fun () -> w.SearchStatusText = "1 of 1")
+    let stateA = a.State
+    openFile w (synthetic "tabs-b.pdf" inkDoc)
+    let bDoc = w.Canvas.Document
+    saveFrame w "tabs-light" |> ignore
+    w.RequestedThemeVariant <- Avalonia.Styling.ThemeVariant.Dark
+    pumpFor 30
+    saveFrame w "tabs-dark" |> ignore
+    w.RequestedThemeVariant <- Avalonia.Styling.ThemeVariant.Default
+    Assert.Equal(2, w.TabCount)
+    Assert.Equal<string[]>([| "tabs-a.pdf"; "tabs-b.pdf" |], w.TabNames)
+    Assert.Equal(1.0, w.Canvas.State.Zoom)
+    Assert.Equal(0L, a.Renderer.Value.CachedBytes)
+    Assert.False(aDoc.IsClosed)
+    press w Key.Tab (RawInputModifiers.Control ||| RawInputModifiers.Shift)
+    Assert.Same(a, w.Canvas)
+    Assert.Equal(stateA.Zoom, w.Canvas.State.Zoom)
+    Assert.Equal(stateA.Rotation, w.Canvas.State.Rotation)
+    Assert.Equal(stateA.History, w.Canvas.State.History)
+    Assert.True(w.IsSearchOpen)
+    Assert.Equal("First", w.SearchBox.Text)
+    Assert.Equal("1 of 1", w.SearchStatusText)
+    // Duplicate paths select the tab without re-opening it.
+    openFile w (synthetic "tabs-b.pdf" inkDoc)
+    Assert.Equal(2, w.TabCount)
+    Assert.Same(bDoc, w.Canvas.Document)
+    let cached = w.Canvas.Renderer.Value.CachedBytes
+    pumpTask (w.OpenFileAsync(synthetic "tabs-b.pdf" inkDoc))
+    Assert.Equal(cached, w.Canvas.Renderer.Value.CachedBytes)
+    press w Key.W RawInputModifiers.Control
+    pumpUntil "B closed" (fun () -> bDoc.IsClosed)
+    Assert.Equal(1, w.TabCount)
+    Assert.Same(a, w.Canvas)
+    w.Close()
+    pumpUntil "A closed with window" (fun () -> aDoc.IsClosed)
+
+[<AvaloniaFact>]
+let ``tab limit refuses another file and closing an inactive tab preserves the active one`` () =
+    let w, _ = newWindow ()
+    for i in 1 .. maxTabs do openFile w (synthetic $"limit-{i}.pdf" inkDoc)
+    let active = w.Canvas.Document
+    openFile w (synthetic "over-limit.pdf" inkDoc)
+    Assert.Equal(maxTabs, w.TabCount)
+    Assert.Same(active, w.Canvas.Document)
+    Assert.Contains("Close a tab", w.StatusMessage)
+    w.CloseTab 0
+    Assert.Same(active, w.Canvas.Document)
+    Assert.Equal(maxTabs - 2, w.SelectedTabIndex)
+    openFile w (synthetic "over-limit.pdf" inkDoc)
+    Assert.Equal(maxTabs, w.TabCount)
+    w.Close()
+
+[<AvaloniaFact>]
+let ``closing a tab during password prompt cannot resurrect the document`` () =
+    let path = corpusFile "pdfium/encrypted"
+    let w, _ = newWindow ()
+    let answer = Threading.Tasks.TaskCompletionSource<string option>()
+    let mutable asked = false
+    w.AskPassword <- fun _ _ -> asked <- true; answer.Task
+    let opening = w.OpenFileAsync path
+    pumpUntil "password prompt" (fun () -> asked)
+    w.CloseDocument()
+    answer.SetResult(Some "1234")
+    pumpTask opening
+    Assert.Equal(0, w.TabCount)
+    Assert.Equal(Welcome, w.Centre)
+    Assert.Null(w.Canvas.Document)
+    w.Close()
+
+[<AvaloniaFact>]
+let ``Windows activation forwards bounded file paths to the primary instance`` () =
+    if OperatingSystem.IsWindows() then
+        let name = "PdfButler.Test." + Guid.NewGuid().ToString("N")
+        use primary = new SingleInstance.Instance(name)
+        Assert.True(primary.IsPrimary)
+        // Mutexes are re-entrant on the owning thread, so create the client on another thread.
+        let paths = [| Path.GetFullPath "a file with spaces.pdf"; Path.GetFullPath "日本語.pdf" |]
+        let forwarded = Threading.Tasks.Task.Run(fun () ->
+            use client = new SingleInstance.Instance(name)
+            Assert.False(client.IsPrimary)
+            client.ForwardAsync(paths).GetAwaiter().GetResult())
+        Assert.True(pumpResult forwarded)
+        let mutable messages = [||]
+        pumpUntil "activation" (fun () -> messages <- Array.append messages (primary.Drain()); messages.Length > 0)
+        Assert.Equal<string[]>(paths, messages[0])
+
+[<AvaloniaFact>]
+let ``command line accepts multiple PDF paths and measure remains opt in`` () =
+    let options = Program.parseArgs [| "a.pdf"; "a path with spaces.pdf" |]
+    Assert.Equal<string[]>([| "a.pdf"; "a path with spaces.pdf" |], options.Files)
+    Assert.False(options.Measure)
+    Assert.True((Program.parseArgs [| "--measure"; "a.pdf" |]).Measure)
 
 [<AvaloniaFact>]
 let ``malformed file shows the error panel`` () =

@@ -8,10 +8,33 @@ Last updated: 2026-11-03. This file continues `reports/Lightweight PDF viewer bu
 |---|---|
 | **1. Compatibility** (rendering, text geometry, search, links/outline, passwords, annotation/form display on discriminating cases) | **Done on Windows.** Not yet run on Linux. |
 | **2. Vertical slice** (open → owner thread → visible page → scroll/zoom → selection/search, instrumented) | **Done on Windows**: engine, view model and UI built and tested (below). Needs hand testing on a real desktop. |
-| 3. Hardening (security policy, resource bounds, keyboard/DPI, packaging) | Partly done in the engine (limits, inert actions, typed errors). UI parts not started. |
+| 3. Hardening (security policy, resource bounds, keyboard/DPI, packaging) | Engine limits/inert actions/typed errors, tab bounds and private deployment packaging done. Desktop DPI/accessibility and process sandbox still outstanding. |
 | 4. Private beta | Not started. |
 
-Tests: 51 core + 167 engine (129 corpus documents + 1 extended) + 16 UI, all passing in about 20 seconds.
+Tests: **51 core + 167 engine (129 corpus documents + 1 extended) + 21 UI = 239**, all passing on Windows in about 20 seconds.
+
+### Latest increment: tabs, branding and deployment
+
+- Branded, light/dark-aware header with an original folded-document/bow-tie icon and wordmark (`assets/`).
+- Up to **10 PDFs** in named, closeable tabs. Page/scroll/zoom/rotation/history, outline, search and selection belong to each tab.
+  Duplicate paths select their existing tab (case-insensitive on Windows). Ctrl+Tab / Ctrl+Shift+Tab switch; Ctrl+W closes only the active tab.
+  Picker, drag/drop and command line accept multiple files. Inactive tabs release raster caches and cancel queued renders;
+  the active raster cache is still limited to 128 MiB (native document/text memory is separate).
+- New files start at **100%, manual zoom**, including on large monitors and after resizing. Fit modes remain explicit commands.
+- Visible **Back / Forward** history buttons, plus the existing Alt+Left / Alt+Right shortcuts.
+- Windows single-instance activation: subsequent launches forward absolute file paths through a bounded, current-user-only named pipe.
+  `--measure` bypasses this so each measurement is a fresh process. Linux currently opens separate instances.
+- Release/self-contained/ReadyToRun **folder publish profiles** for win-x64 and linux-x64, with native libraries beside the executable,
+  dependency notices included and debug symbols excluded. `tools/Publish.ps1` refuses nonempty destinations.
+- Per-user Windows install/register/unregister scripts with `-WhatIf`. Registration adds Open with / Default Apps eligibility and an optional
+  classic PDF context-menu verb. It **never changes the default PDF app** or touches Windows' protected UserChoice key.
+  On Windows 11 the classic verb normally appears under Show more options. Actual registration has not been applied to this development machine.
+- GitHub Actions matrix configured for Windows and Ubuntu 24.04, core corpus cache keyed by manifest hash. First remote run / Linux verification pending.
+- `THIRD_PARTY_NOTICES.md` and bundled dependency license texts added. No test PDF or derived corpus data enters the app publish folder.
+
+Deployment commands and limitations: **[`DEPLOYMENT.md`](DEPLOYMENT.md)**. The Windows deployment folder has been built and smoke-tested with `--measure`;
+all three Windows integration scripts have been checked with `-WhatIf` only. The Linux x64 folder cross-publishes successfully from Windows, but has not been run on Linux.
+This is **private deployment**, not completion of the sandbox/public-release gate.
 
 ### Decisions made (and why)
 
@@ -44,7 +67,10 @@ an error panel, and the keyboard shortcuts below.
 | `PageRenderer.fs` | Tile planning (whole page ≤ 6 Mpx and ≤ 4096 px per side, else 1024 px tiles) and the 128 MiB bitmap cache (`Renderer`). |
 | `PdfView.fs` | `PageCanvas` (drawing, pointer input, search, selection) and `DocumentView` (canvas + scroll bars). |
 | `Dialogs.fs` | Password, confirm and info dialogs. |
-| `MainWindow.fs` | Toolbar, notice bar, search bar, outline, centre (document / welcome / error), status bar, keyboard, open/close flow. |
+| `AppTypes.fs` | Shared UI types (`Centre`). |
+| `DocumentPane.fs` | One document's toolbar, notices, search, outline, centre, status, keyboard and async open/close flow. |
+| `MainWindow.fs` | Branded window, bounded tab ownership, multi-file picker/drop, tab shortcuts. |
+| `SingleInstance.fs` | Bounded current-user Windows activation pipe and instance ownership. |
 | `Program.fs` | `App` (Fluent, follows system light/dark), entry point, `--measure <file>`. |
 
 Pure parts went into Core with tests: `Core/PageInput.fs` parses the page box (exact label, then number, then label ignoring case) and the zoom box
@@ -53,7 +79,7 @@ Pure parts went into Core with tests: `Core/PageInput.fs` parses the page box (e
 Dialogs and the URL launcher are replaceable properties on `MainWindow` (`AskPassword`, `ConfirmLink`, `LaunchUri`), so tests never show a dialog or launch anything.
 Only http, https and mailto links are offered (after a confirmation showing the full URL). Other schemes, including `file:`, and unsupported actions only show a status message.
 
-Keyboard: Ctrl+O open, Ctrl+W close, Ctrl+F find, F3 / Shift+F3 next/previous hit, Esc (close search, then clear selection), Ctrl+G page box,
+Keyboard: Ctrl+O open, Ctrl+W close tab, Ctrl+Tab / Ctrl+Shift+Tab next/previous tab, Ctrl+F find, F3 / Shift+F3 next/previous hit, Esc (close search, then clear selection), Ctrl+G page box,
 Ctrl+C copy, Ctrl+= / Ctrl+− zoom, Ctrl+0 fit page, Ctrl+1 100%, Ctrl+2 fit width, Ctrl+Shift+= / Ctrl+Shift+− rotate,
 PageUp/PageDown, Space/Shift+Space, Home/End, arrows, N/P, Alt+Left/Right. While typing in a box, only the Ctrl, F3, Esc and Alt shortcuts apply.
 
@@ -64,6 +90,9 @@ ink position checked against the PDF spec's geometry, keyboard/label navigation 
 rotation quadrant read from the rendered frame, search highlight pixels and F3 cycling, the no-text message, drag-select + clipboard,
 link/outline navigation with confirm and refusal, password retry/cancel, malformed and missing files, a broken page, A→B switching without stale tiles,
 and the cache staying ≤ 128 MiB while scrolling 1500 pages at 200%.
+Five further tests cover independent tab state/cache suspension/duplicate activation, the tab cap and inactive close,
+close-during-password-open, real Windows pipe forwarding (spaces/Unicode paths), and multi-file command-line parsing.
+The tab-state test saves synthetic-document light/dark frames to `artifacts/app/tabs-light.png` and `tabs-dark.png`; both have been reviewed.
 
 Harness notes: `pumpUntil` runs the real dispatcher loop briefly, so timers such as the search debounce fire. `saveFrame w "name"` writes
 `artifacts/app/name.png` when you need to look at a failure.
@@ -83,21 +112,39 @@ About 860 ms of the launch time is before the window opens (framework start and 
 `PdfButler.exe --measure file.pdf` prints the JSON (on Windows it attaches to the parent console) and exits with 0 on success,
 2 if the file didn't open, 3 on a 60 s timeout.
 
+### Published-build measurements (2026-11-03)
+
+Windows 10 22H2 x64 (10.0.19045), self-contained Release, 100% opening zoom. **20 fresh processes per document per mode**,
+one discarded warm-up per document, warm filesystem cache. Modes ran sequentially, not concurrently. Percentiles use nearest rank.
+"Open" is `first-page-presented - open-start` in a fresh process (not a warmed-up second tab).
+
+| Document | R2R launch p50 / p95 | JIT launch p50 / p95 | R2R open p50 / p95 | R2R working set p95 |
+|---|---|---|---|---|
+| pdf.js tracemonkey (14 pages) | 575.5 / 603.4 ms | 1157.1 / 1194.1 ms | 122.5 / 133.6 ms | 148.5 MiB |
+| PDF 2.0 UTF-8 test | 579.2 / 592.5 ms | 1153.4 / 1196.8 ms | 128.0 / 132.4 ms | 150.2 MiB |
+| PDF 2.0 image with BPC | 561.2 / 581.8 ms | 1143.6 / 1163.7 ms | 112.3 / 121.0 ms | 139.8 MiB |
+
+**Decision: keep ReadyToRun enabled for folder publishing.** It roughly halves launch time here and meets the original startup/memory targets.
+Ordinary edit/run builds stay JIT; NativeAOT is deferred, not needed to meet the current targets.
+Raw samples are local/ignored: `artifacts/startup-r2r.json` and `startup-jit.json`. Reproduce with `tools/Measure-Startup.ps1` (see deployment guide).
+SumatraPDF wasn't found in the usual installation folders, so the independent viewer comparison remains outstanding.
+This is not a cold-disk, high-DPI or hostile-document performance claim.
+
 ### Still to do in the UI
 
 - Hand testing on a real desktop: file picker, drag and drop from Explorer, high-DPI monitors and DPI changes, dark theme, screen reader names.
   The picker and drag/drop aren't covered by the headless tests.
-- Not built yet: back/forward buttons (keyboard only for now), remembering the last position per file, recent files, Select all.
+- Not built yet: remembering the last position per file between sessions, recent files, Select all. Position is retained while a tab stays open.
 - Outline children are built lazily on first expand. Very large outlines haven't been timed.
 
 ### Next
 
-- Full `--measure` runs: launch-to-first-page and open-to-first-page, ≥ 20 repetitions, p50/p95, several documents.
-  Compare with installed SumatraPDF. Then decide on ReadyToRun or NativeAOT based on the measurements.
+- Performance follow-up: compare with SumatraPDF when installed; measure warm second-tab opens and cold-disk/DPI cases.
+  The ≥20-run, three-document JIT/ReadyToRun comparison is complete above; ReadyToRun is the publishing default.
 - Linux: run the full suite on one named distro (glibc x64). Expect a few golden differences from fonts. Add per-platform baselines only with a reason.
-- CI: GitHub Actions matrix (windows-latest, ubuntu-latest) with the corpus cached by manifest hash.
-- `THIRD_PARTY_NOTICES`: PDFium LICENSE plus the bblanchon package's bundled notices, Avalonia (MIT), and corpus attributions (CC BY / CC BY-SA).
-- Private corpus: `corpus/private/manifest.json` (gitignored), same tests, no artifacts uploaded.
+- CI: review the first GitHub Actions Windows/Ubuntu 24.04 run; investigate rather than suppress any Linux golden differences.
+- Notices: Windows/Linux pinned PDFium archives' notice texts match (line endings aside). Review application licensing before public redistribution.
+- Private corpus: `corpus/private/` is now gitignored; private manifest loading/tests are not wired up yet. Never upload private artifacts.
 
 ## Risks and known limitations
 

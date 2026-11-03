@@ -89,6 +89,7 @@ type Calls() =
 let newWindow () =
     let w = MainWindow(PdfEngine.Shared, Width = 900.0, Height = 700.0)
     let calls = Calls()
+    w.ConfirmClose <- fun _ -> Task.FromResult PdfButler.App.Dialogs.All
     w.AskPassword <-
         fun name wrong ->
             calls.Passwords.Add((name, wrong))

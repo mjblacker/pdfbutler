@@ -52,6 +52,7 @@ type PageCanvas() as this =
     let mutable searchOptions = Search.defaultOptions
     let mutable updateQueued = false
     let mutable firstPresented = false
+    let mutable active = true
 
     let stateChanged = Event<unit>()
     let linkActivated = Event<LinkTarget>()
@@ -111,7 +112,7 @@ type PageCanvas() as this =
         updateQueued <- false
         match renderer with
         | None -> ()
-        | Some r ->
+        | Some r when active ->
             let rs = renderScaling ()
             let scale = dpp () * rs
             let vp = state.Viewport
@@ -146,6 +147,7 @@ type PageCanvas() as this =
                         | [ (k, rect) ] -> wanted.Add((k, rect, Priority.Prefetch))
                         | _ -> ()
             r.Update(List.ofSeq wanted)
+        | Some _ -> ()
 
     let scheduleUpdate () =
         if not updateQueued then
@@ -218,6 +220,7 @@ type PageCanvas() as this =
         this.ClipToBounds <- true
         this.Focusable <- true
         this.Cursor <- new Cursor(StandardCursorType.Arrow)
+        this.ActualThemeVariantChanged.Add(fun _ -> this.InvalidateVisual())
 
     // ---- public API -------------------------------------------------------------------
 
@@ -239,6 +242,13 @@ type PageCanvas() as this =
 
     member _.Dispatch(msg: Viewer.Msg) = apply msg
 
+    member _.SetActive(value: bool) =
+        active <- value
+        renderer |> Option.iter (fun r -> r.SetSuspended(not value))
+        if value then
+            this.InvalidateVisual()
+            scheduleUpdate ()
+
     /// Attach a newly opened document (the caller owns closing the previous one).
     member this.SetDocument(d: PdfDocument) =
         this.ClearSearch()
@@ -252,6 +262,7 @@ type PageCanvas() as this =
             state <- Viewer.create [||] state.Viewport
         else
             renderer <- Some(new Renderer(d, (fun () -> this.InvalidateVisual())))
+            renderer.Value.SetSuspended(not active)
             let sizes = d.Info.Pages |> Array.map (fun p -> p.Size)
             state <- Viewer.create sizes state.Viewport
         this.InvalidateVisual()

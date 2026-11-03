@@ -1,6 +1,7 @@
 module PdfButler.App.Program
 
 open System
+open System.IO
 open System.Runtime.InteropServices
 open System.Threading.Tasks
 open Avalonia
@@ -12,19 +13,21 @@ open Avalonia.Threading
 open PdfButler.Pdfium
 open PdfButler.App.MainWindow
 
-/// Command line: `PdfButler [file.pdf]` or `PdfButler --measure file.pdf`.
+/// Command line: `PdfButler [file.pdf ...]` or `PdfButler --measure file.pdf`.
 type Options =
-    { File: string option
+    { Files: string[]
       Measure: bool }
 
 let parseArgs (args: string[]) =
     let rec go (o: Options) =
         function
-        | "--measure" :: f :: rest -> go { o with File = Some f; Measure = true } rest
-        | f :: rest when not (f.StartsWith "--") && o.File.IsNone -> go { o with File = Some f } rest
+        | "--measure" :: rest -> go { o with Measure = true } rest
+        | f :: rest when not (f.StartsWith "--") -> go { o with Files = Array.append o.Files [| f |] } rest
         | _ :: rest -> go o rest
         | [] -> o
-    go { File = None; Measure = false } (List.ofArray args)
+    go { Files = [||]; Measure = false } (List.ofArray args)
+
+let mutable private instance: SingleInstance.Instance option = None
 
 [<DllImport("kernel32.dll")>]
 extern bool AttachConsole(int processId)
@@ -41,14 +44,22 @@ type App() =
         | :? IClassicDesktopStyleApplicationLifetime as desktop ->
             let options = parseArgs (if isNull desktop.Args then [||] else desktop.Args)
             let window = MainWindow(PdfEngine.Shared)
+            if not options.Measure then WindowPlacement.attach window
             desktop.MainWindow <- window
+            let drainActivations () =
+                instance |> Option.iter (fun host ->
+                    for paths in host.Drain() do
+                        if window.WindowState = WindowState.Minimized then window.WindowState <- WindowState.Normal
+                        window.Activate()
+                        window.OpenFilesAsync paths |> ignore)
+            instance |> Option.iter (fun host -> host.Received.Add(fun () -> Dispatcher.UIThread.Post drainActivations))
             let mutable finished = false
             let finish (code: int) =
                 if not finished then
                     finished <- true
                     let json =
                         Diagnostics.snapshotJson
-                            [ "file", box (defaultArg options.File "")
+                            [ "file", box (options.Files |> Array.tryHead |> Option.defaultValue "")
                               "exitCode", box code
                               "cachedBytes", box (window.Canvas.Renderer |> Option.map (fun r -> r.CachedBytes) |> Option.defaultValue 0L) ]
                     Console.Out.WriteLine json
@@ -61,14 +72,16 @@ type App() =
                 DispatcherTimer.RunOnce((fun () -> finish 3), TimeSpan.FromSeconds 60.0) |> ignore
             window.Opened.Add(fun _ ->
                 Diagnostics.mark "window-opened"
-                match options.File with
+                match options.Files |> Array.tryHead with
                 | Some f ->
                     task {
-                        do! window.OpenFileAsync f
+                        if options.Measure then do! window.OpenFileAsync f
+                        else do! window.OpenFilesAsync options.Files
                         // An open failure never presents a page: report it and stop.
                         if options.Measure && window.Centre <> DocumentShown then finish 2
                     } |> ignore
-                | None -> if options.Measure then finish 1)
+                | None -> if options.Measure then finish 1
+                drainActivations ())
         | _ -> ()
         base.OnFrameworkInitializationCompleted()
 
@@ -78,9 +91,20 @@ let buildAvaloniaApp () =
 [<EntryPoint; STAThread>]
 let main argv =
     Diagnostics.mark "main"
-    if OperatingSystem.IsWindows() && Array.contains "--measure" argv then
+    let options = parseArgs argv
+    if OperatingSystem.IsWindows() && options.Measure then
         // WinExe has no console: write the measurement to the one we were started from.
         AttachConsole -1 |> ignore
-    // Load and initialise PDFium on its owner thread while the UI starts.
-    Task.Run(fun () -> try PdfEngine.Shared.EnsureReady() with _ -> ()) |> ignore
-    buildAvaloniaApp().StartWithClassicDesktopLifetime(argv)
+    let run () =
+        // Load and initialise PDFium on its owner thread while the UI starts.
+        Task.Run(fun () -> try PdfEngine.Shared.EnsureReady() with _ -> ()) |> ignore
+        buildAvaloniaApp().StartWithClassicDesktopLifetime(argv)
+    if OperatingSystem.IsWindows() && not options.Measure then
+        use host = new SingleInstance.Instance()
+        if host.IsPrimary then
+            instance <- Some host
+            run ()
+        else
+            let files = options.Files |> Array.truncate maxTabs |> Array.map Path.GetFullPath
+            if host.ForwardAsync(files).GetAwaiter().GetResult() then 0 else 2
+    else run ()

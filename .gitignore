@@ -482,7 +482,9 @@ $RECYCLE.BIN/
 *.swp
 
 # PdfButler
+!src/PdfButler.App/Properties/PublishProfiles/*.pubxml
 corpus/cache/
+corpus/private/
 artifacts/
 tools/oracle/node_modules/
 *.part

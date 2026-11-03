@@ -90,3 +90,21 @@ let info (owner: Window) (title: string) (message: string) : Task =
     let w = dialogWindow title panel
     ok.Click.Add(fun _ -> w.Close())
     w.ShowDialog(owner)
+
+type CloseChoice = Cancel | Current | All
+
+let closeDocuments (owner: Window) (count: int) : Task<CloseChoice> =
+    let panel = StackPanel(Spacing = 16.0)
+    panel.Children.Add(TextBlock(Text = $"You have {count} PDFs open. Close the current tab or all tabs?"))
+    let buttons = StackPanel(Orientation = Orientation.Horizontal, Spacing = 8.0)
+    panel.Children.Add buttons
+    let w = dialogWindow "Close PDFs" panel
+    let mutable result = Cancel
+    for label, choice in [ "Close current tab", Current; "Close all tabs", All; "Cancel", Cancel ] do
+        let b = button label (choice = Cancel) (choice = Cancel)
+        b.Click.Add(fun _ -> result <- choice; w.Close())
+        buttons.Children.Add b
+    task {
+        do! w.ShowDialog(owner)
+        return result
+    }

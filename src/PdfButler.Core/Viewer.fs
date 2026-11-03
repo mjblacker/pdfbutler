@@ -53,13 +53,13 @@ let private clamp (s: State) = { s with Offset = Layout.clampOffset s.Layout s.V
 
 let create (pages: Size[]) (viewport: Size) : State =
     let p = Layout.defaultParams
-    let zoom = Layout.fitWidthZoom pages p viewport
+    let zoom = 1.0
     let layout = Layout.compute pages { p with Zoom = zoom }
 
     clamp
         { Pages = pages
           Zoom = zoom
-          Mode = FitWidth
+          Mode = Manual
           Rotation = R0
           Offset = { X = 0.0; Y = 0.0 }
           Viewport = viewport

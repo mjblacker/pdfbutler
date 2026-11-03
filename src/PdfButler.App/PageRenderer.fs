@@ -74,6 +74,7 @@ type Renderer(doc: PdfDocument, onChanged: unit -> unit) =
     let pageErrors = Dictionary<int, string>()
     let mutable disposed = false
     let mutable firstTileDelivered = false
+    let mutable suspended = false
 
     member _.Document = doc
     member _.PageError(page: int) = match pageErrors.TryGetValue page with | true, m -> Some m | _ -> None
@@ -81,6 +82,14 @@ type Renderer(doc: PdfDocument, onChanged: unit -> unit) =
     member _.CachedKeys = cache.Keys
     member _.InFlightCount = inFlight.Count
     member val FirstTile: (unit -> unit) = ignore with get, set
+
+    /// Inactive tabs retain their document/state, not their expensive raster cache.
+    member _.SetSuspended(value: bool) =
+        suspended <- value
+        if value then
+            for cts in inFlight.Values do cts.Cancel()
+            inFlight.Clear()
+            cache.Clear()
 
     member _.TryGet(key: TileKey) = cache.TryGet key
 
@@ -96,7 +105,7 @@ type Renderer(doc: PdfDocument, onChanged: unit -> unit) =
 
     /// Make the set of wanted tiles current: cancel what is no longer wanted, start what is missing.
     member this.Update(wanted: (TileKey * PixelRect * Priority) list) =
-        if not disposed then
+        if not disposed && not suspended then
             let wantedKeys = HashSet<TileKey>(wanted |> List.map (fun (k, _, _) -> k))
             for KeyValue(k, cts) in List.ofSeq inFlight do
                 if not (wantedKeys.Contains k) then
@@ -118,8 +127,9 @@ type Renderer(doc: PdfDocument, onChanged: unit -> unit) =
                 match inFlight.TryGetValue key with
                 | true, c when obj.ReferenceEquals(c, cts) -> inFlight.Remove key |> ignore
                 | _ -> ()
+                let cancelled = cts.IsCancellationRequested
                 cts.Dispose()
-                if not disposed then
+                if not disposed && not suspended && not cancelled then
                     if t.IsCompletedSuccessfully then
                         let img = t.Result
                         cache.Add(key, { Key = key; Bitmap = toBitmap img; Rect = { rect with W = img.Width; H = img.Height }; Scale = scale })

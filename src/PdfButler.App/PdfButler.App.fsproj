@@ -5,17 +5,23 @@
     <AssemblyName>PdfButler</AssemblyName>
     <RootNamespace>PdfButler.App</RootNamespace>
     <ApplicationManifest>app.manifest</ApplicationManifest>
-    <!-- Ordinary managed build for the edit/run loop. ReadyToRun / NativeAOT are a later, measured decision. -->
+    <ApplicationIcon>../../assets/pdfbutler.ico</ApplicationIcon>
+    <!-- Ordinary builds stay managed/JIT; folder publish profiles opt into ReadyToRun (not AOT). -->
     <TieredPGO>true</TieredPGO>
     <InvariantGlobalization>false</InvariantGlobalization>
   </PropertyGroup>
 
   <ItemGroup>
     <Compile Include="Diagnostics.fs" />
+    <Compile Include="AppTypes.fs" />
     <Compile Include="PageRenderer.fs" />
     <Compile Include="PdfView.fs" />
+    <Compile Include="Icons.fs" />
+    <Compile Include="WindowPlacement.fs" />
     <Compile Include="Dialogs.fs" />
+    <Compile Include="DocumentPane.fs" />
     <Compile Include="MainWindow.fs" />
+    <Compile Include="SingleInstance.fs" />
     <Compile Include="Program.fs" />
   </ItemGroup>
 
@@ -30,7 +36,27 @@
   </ItemGroup>
 
   <ItemGroup>
+    <Content Include="../../licenses/**/*" Link="licenses/%(RecursiveDir)%(Filename)%(Extension)" CopyToPublishDirectory="PreserveNewest" />
+    <Content Include="../../THIRD_PARTY_NOTICES.md" Link="THIRD_PARTY_NOTICES.md" CopyToPublishDirectory="PreserveNewest" />
+    <Content Include="../../docs/DEPLOYMENT.md" Link="DEPLOYMENT.md" CopyToPublishDirectory="PreserveNewest" />
+    <Content Include="../../docs/PLAN.md" Link="PLAN.md" CopyToPublishDirectory="PreserveNewest" />
+    <Content Include="../../packaging/windows/*.ps1" Link="%(Filename)%(Extension)" CopyToPublishDirectory="PreserveNewest" Condition="'$(RuntimeIdentifier)' == 'win-x64'" />
+  </ItemGroup>
+
+  <ItemGroup>
+    <EmbeddedResource Include="../../assets/pdfbutler.png" LogicalName="PdfButler.icon.png" />
+    <EmbeddedResource Include="../../assets/pdfbutler.ico" LogicalName="PdfButler.icon.ico" />
     <InternalsVisibleTo Include="PdfButler.App.Tests" />
   </ItemGroup>
+
+  <Target Name="PrepareDeploymentFiles" AfterTargets="ComputeFilesToPublish">
+    <ItemGroup>
+      <!-- Native packages ship ~100 MiB of PDBs; none are needed to run the reader. -->
+      <ResolvedFileToPublish Remove="@(ResolvedFileToPublish)" Condition="'%(ResolvedFileToPublish.Extension)' == '.pdb'" />
+      <_RuntimeNoticePack Include="@(ResolvedRuntimePack)" Condition="'%(ResolvedRuntimePack.FrameworkName)' == 'Microsoft.NETCore.App'" />
+      <ResolvedFileToPublish Include="@(_RuntimeNoticePack->'%(PackageDirectory)/LICENSE.TXT')" RelativePath="licenses/dotnet/LICENSE.TXT" CopyToPublishDirectory="PreserveNewest" />
+      <ResolvedFileToPublish Include="@(_RuntimeNoticePack->'%(PackageDirectory)/THIRD-PARTY-NOTICES.TXT')" RelativePath="licenses/dotnet/THIRD-PARTY-NOTICES.TXT" CopyToPublishDirectory="PreserveNewest" />
+    </ItemGroup>
+  </Target>
 
 </Project>
