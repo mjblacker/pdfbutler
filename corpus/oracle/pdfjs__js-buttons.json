@@ -1,0 +1,29 @@
+{
+ "id": "pdfjs/js-buttons",
+ "engine": "pdf.js 6.5.438",
+ "ok": true,
+ "error": null,
+ "numPages": 1,
+ "pages": [
+  {
+   "index": 0,
+   "width": 612,
+   "height": 792,
+   "rotate": 0,
+   "text": "Radios\nCheckboxes\nRadio Checkboxes",
+   "links": 0,
+   "widgets": 17,
+   "annotations": 17,
+   "error": null
+  }
+ ],
+ "outline": {
+  "top": 1,
+  "total": 1,
+  "titles": [
+   "Blank Page"
+  ]
+ },
+ "labels": null,
+ "hasForms": false
+}

@@ -1,0 +1,23 @@
+{
+ "id": "pdfjs/xfa_issue14315",
+ "engine": "pdf.js 6.5.438",
+ "ok": true,
+ "error": null,
+ "numPages": 1,
+ "pages": [
+  {
+   "index": 0,
+   "width": 612,
+   "height": 792,
+   "rotate": 0,
+   "text": "The document you are trying to load requires Adobe Reader 8 or higher. You may not have the\nAdobe Reader installed or your viewing environment may not be properly configured to use\nAdobe Reader.\nFor information on how to install Adobe Reader and configure your viewing environment please\nsee http://www.adobe.com/go/pdf_forms_configure.",
+   "links": 0,
+   "widgets": 0,
+   "annotations": 0,
+   "error": null
+  }
+ ],
+ "outline": null,
+ "labels": null,
+ "hasForms": false
+}

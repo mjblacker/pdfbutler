@@ -1,0 +1,23 @@
+{
+ "id": "pdfium/encrypted_hello_world_r5",
+ "engine": "pdf.js 6.5.438",
+ "ok": true,
+ "error": null,
+ "numPages": 1,
+ "pages": [
+  {
+   "index": 0,
+   "width": 200,
+   "height": 200,
+   "rotate": 0,
+   "text": "Hello, world!\nGoodbye, world!",
+   "links": 0,
+   "widgets": 0,
+   "annotations": 0,
+   "error": null
+  }
+ ],
+ "outline": null,
+ "labels": null,
+ "hasForms": false
+}

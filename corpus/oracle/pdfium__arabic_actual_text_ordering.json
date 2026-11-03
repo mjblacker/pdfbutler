@@ -1,0 +1,56 @@
+{
+ "id": "pdfium/arabic_actual_text_ordering",
+ "engine": "pdf.js 6.5.438",
+ "ok": true,
+ "error": null,
+ "numPages": 4,
+ "pages": [
+  {
+   "index": 0,
+   "width": 200,
+   "height": 200,
+   "rotate": 0,
+   "text": "ﻢِْﺴِﺑ",
+   "links": 0,
+   "widgets": 0,
+   "annotations": 0,
+   "error": null
+  },
+  {
+   "index": 1,
+   "width": 200,
+   "height": 200,
+   "rotate": 0,
+   "text": "ِﻢْﺴِﺑ",
+   "links": 0,
+   "widgets": 0,
+   "annotations": 0,
+   "error": null
+  },
+  {
+   "index": 2,
+   "width": 200,
+   "height": 200,
+   "rotate": 0,
+   "text": "ﺑِْﺴِﻢ",
+   "links": 0,
+   "widgets": 0,
+   "annotations": 0,
+   "error": null
+  },
+  {
+   "index": 3,
+   "width": 200,
+   "height": 200,
+   "rotate": 0,
+   "text": "ِﺑْﺴِﻢ",
+   "links": 0,
+   "widgets": 0,
+   "annotations": 0,
+   "error": null
+  }
+ ],
+ "outline": null,
+ "labels": null,
+ "hasForms": false
+}

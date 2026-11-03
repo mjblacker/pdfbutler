@@ -1,0 +1,34 @@
+{
+ "id": "pdfium/named_dests",
+ "engine": "pdf.js 6.5.438",
+ "ok": true,
+ "error": null,
+ "numPages": 2,
+ "pages": [
+  {
+   "index": 0,
+   "width": 612,
+   "height": 792,
+   "rotate": 0,
+   "text": "Page1",
+   "links": 0,
+   "widgets": 0,
+   "annotations": 0,
+   "error": null
+  },
+  {
+   "index": 1,
+   "width": 612,
+   "height": 792,
+   "rotate": 0,
+   "text": "Page2",
+   "links": 0,
+   "widgets": 0,
+   "annotations": 0,
+   "error": null
+  }
+ ],
+ "outline": null,
+ "labels": null,
+ "hasForms": false
+}

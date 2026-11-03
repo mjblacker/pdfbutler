@@ -1,0 +1,23 @@
+{
+ "id": "pdf20/incremental-save",
+ "engine": "pdf.js 6.5.438",
+ "ok": true,
+ "error": null,
+ "numPages": 1,
+ "pages": [
+  {
+   "index": 0,
+   "width": 612,
+   "height": 396,
+   "rotate": 0,
+   "text": "PDF 2.0 Words Have Spacing",
+   "links": 0,
+   "widgets": 0,
+   "annotations": 0,
+   "error": null
+  }
+ ],
+ "outline": null,
+ "labels": null,
+ "hasForms": false
+}

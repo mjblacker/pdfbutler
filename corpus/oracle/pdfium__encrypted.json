@@ -1,0 +1,29 @@
+{
+ "id": "pdfium/encrypted",
+ "engine": "pdf.js 6.5.438",
+ "ok": true,
+ "error": null,
+ "numPages": 1,
+ "pages": [
+  {
+   "index": 0,
+   "width": 612,
+   "height": 792,
+   "rotate": 0,
+   "text": "file:///C|/Users/User/Desktop/1.txt[5/21/2016 6:24:00 AM]\ntest",
+   "links": 0,
+   "widgets": 0,
+   "annotations": 0,
+   "error": null
+  }
+ ],
+ "outline": {
+  "top": 1,
+  "total": 2,
+  "titles": [
+   "Local Disk"
+  ]
+ },
+ "labels": null,
+ "hasForms": false
+}

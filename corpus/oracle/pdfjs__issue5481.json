@@ -1,0 +1,53 @@
+{
+ "id": "pdfjs/issue5481",
+ "engine": "pdf.js 6.5.438",
+ "ok": true,
+ "error": null,
+ "numPages": 3,
+ "pages": [
+  {
+   "index": 0,
+   "width": 1090,
+   "height": 725,
+   "rotate": 0,
+   "text": "",
+   "links": 0,
+   "widgets": 0,
+   "annotations": 0,
+   "error": null
+  },
+  {
+   "index": 1,
+   "width": 1090,
+   "height": 725,
+   "rotate": 0,
+   "text": "",
+   "links": 0,
+   "widgets": 0,
+   "annotations": 0,
+   "error": null
+  },
+  {
+   "index": 2,
+   "width": 1090,
+   "height": 725,
+   "rotate": 0,
+   "text": "",
+   "links": 0,
+   "widgets": 0,
+   "annotations": 0,
+   "error": null
+  }
+ ],
+ "outline": {
+  "top": 3,
+  "total": 3,
+  "titles": [
+   "cabs_small_p128_cprl",
+   "cabs_small_p128_pcrl",
+   "cabs_small_p128_rpcl"
+  ]
+ },
+ "labels": null,
+ "hasForms": false
+}

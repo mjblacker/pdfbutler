@@ -1,0 +1,206 @@
+{
+  // Test corpus manifest. See corpus/README.md.
+  // Bytes are never committed: `dotnet run --project tools/PdfButler.Corpus -- fetch` downloads them
+  // from the pinned upstream commit into corpus/cache/ and verifies SHA-256.
+  "version": 1,
+  "sources": {
+    "pdfjs": {
+      "kind": "github",
+      "repo": "mozilla/pdf.js",
+      "commit": "c7ca8a32e5676764ddf94226e9ef1720405fc631",
+      "license": "Repository is Apache-2.0. Many test files come from public bug reports; their individual rights are not documented.",
+      "redistributable": "unknown"
+    },
+    "pdfium": {
+      "kind": "gitiles",
+      "repo": "https://pdfium.googlesource.com/pdfium",
+      "commit": "bbb9926d4de4909ad5dc3dce76607e83589809c6",
+      "license": "PDFium LICENSE (BSD-3-Clause and Apache-2.0). Test resources are written for PDFium's own test suite.",
+      "redistributable": "yes"
+    },
+    "pdf20": {
+      "kind": "github",
+      "repo": "pdf-association/pdf20examples",
+      "commit": "c20f2c17bfcc4baab7cfe62e70fae64caf14d5fa",
+      "license": "CC BY-SA 4.0, PDF Association. Attribution and share-alike apply.",
+      "redistributable": "yes-with-attribution"
+    },
+    "verapdf": {
+      "kind": "github",
+      "repo": "veraPDF/veraPDF-corpus",
+      "commit": "bb75f4f0073d9350dfd058c0162a367e6fadf25e",
+      "license": "CC BY 4.0, veraPDF consortium. Attribution applies.",
+      "redistributable": "yes-with-attribution"
+    },
+    "web": {
+      "kind": "url",
+      "license": "Per-document; see each entry's notes.",
+      "redistributable": "no"
+    }
+  },
+  "documents": [
+    // ---------------- ordinary text documents ----------------
+    { "id": "pdfjs/tracemonkey", "sha256": "3662ff519e485810520552bf301d8c3b2b917fd2f83303f4965d7abed367e113", "source": "pdfjs", "path": "test/pdfs/tracemonkey.pdf", "tags": ["smoke", "text", "type1", "multipage", "academic"], "pages": [0, 1],
+      "expect": { "pageCount": 14, "text": [{ "page": 0, "contains": "Trace-based Just-in-Time Type Specialization for Dynamic" }], "search": [{ "query": "trace trees", "minHits": 3 }] } },
+    { "id": "pdfjs/TAMReview", "sha256": "a6db6d2f5e4f97e1e28a5919a875a40b89e38d0229b33cc023ca4d353f3ab3ec", "source": "pdfjs", "path": "test/pdfs/TAMReview.pdf", "tags": ["text", "type1", "multipage"] },
+    { "id": "pdfjs/mixedfonts", "sha256": "04f17b84112d8130d75601f8f9c2027481a19df595aacb753ca3f9f3b08b2350", "source": "pdfjs", "path": "test/pdfs/mixedfonts.pdf", "tags": ["fonts", "truetype", "type1"] },
+    { "id": "pdfjs/franz", "sha256": "050ae194d21d9b257db62b85cdb632178bbcf71fd7e26c13e75e473a3fa4e8ea", "source": "pdfjs", "path": "test/pdfs/franz.pdf", "tags": ["fonts", "type1", "encoding"] },
+    { "id": "pdfjs/issue3584", "sha256": "b3fdd74779209c148220be77a21b4873d5c356e15f3f2895856177e05742e1b0", "source": "pdfjs", "path": "test/pdfs/issue3584.pdf", "tags": ["fonts", "cff", "clip"] },
+    { "id": "pdfjs/issue5564_reduced", "sha256": "26ba0dcc4a2159d0769f795778a42e8955c14e2301fb553fa99c1d0982ac809c", "source": "pdfjs", "path": "test/pdfs/issue5564_reduced.pdf", "tags": ["fonts", "broken-cmap"] },
+    { "id": "pdfjs/issue11016_reduced", "sha256": "94860e22826ab3297ffb94d6deb52de5ffb2d27251aa4d17bef1d1edbd1d9d3f", "source": "pdfjs", "path": "test/pdfs/issue11016_reduced.pdf", "tags": ["text"] },
+    { "id": "pdfjs/issue10529", "sha256": "01e1abc883c25e4b7d952d260717da5f533b23ccd8d5b10d95f4d8581b294f42", "source": "pdfjs", "path": "test/pdfs/issue10529.pdf", "tags": ["text"] },
+    { "id": "pdfjs/rotated", "sha256": "08c31db1ebd2345d1dcdcd3ee2baffe47845db76e9911a823ad9ed8638b5a294", "source": "pdfjs", "path": "test/pdfs/rotated.pdf", "tags": ["text", "rotation"] },
+    { "id": "pdfium/hello_world", "sha256": "1e06a6e12329f0c3760680a70baea126e040e66e0bf34d3b14a71863096ee1e3", "source": "pdfium", "path": "testing/resources/hello_world.pdf", "tags": ["smoke", "text"],
+      "expect": { "pageCount": 1, "text": [{ "page": 0, "contains": "Hello, world!" }], "search": [{ "query": "goodbye, world", "minHits": 1 }] } },
+    { "id": "pdfium/hello_world_2_pages", "sha256": "67431cbec27df7cc86a57da5ff11b5151628fa93f661da79b9d272ec85bcdb03", "source": "pdfium", "path": "testing/resources/hello_world_2_pages.pdf", "tags": ["text", "multipage"], "pages": [0, 1],
+      "expect": { "pageCount": 2 } },
+    { "id": "pdfium/latin_extended", "sha256": "3c52b991b6669e07d5c67c478ff4dee6a843cb44d390fd29ecdf6d9e85ea1038", "source": "pdfium", "path": "testing/resources/latin_extended.pdf", "tags": ["text", "diacritics"] },
+    { "id": "pdfium/utf-8", "sha256": "a5750bf3f309affeb24d78e56a1f0af8bfe4e74209857d23652937d646e3cd9e", "source": "pdfium", "path": "testing/resources/utf-8.pdf", "tags": ["text", "unicode"] },
+    { "id": "pdfium/find_text_consecutive", "sha256": "6416e9a7678fb029bad73c9c2182ac450e233aa9dc44a7dd0b782a8dd8e641dc", "source": "pdfium", "path": "testing/resources/find_text_consecutive.pdf", "tags": ["text", "search"] },
+    { "id": "pdfium/text_render_mode", "sha256": "b20365f879a7db4d41556924040f948fbdbb25df2bb10b8d3f52c8ee5fd43210", "source": "pdfium", "path": "testing/resources/text_render_mode.pdf", "tags": ["text", "render-mode"] },
+    { "id": "pdfium/hello_world_with_invisible_spaces", "sha256": "71c146b55c3e5abfa89051e097c99e0619f886bff3c8b9f6f1fd650894c651ad", "source": "pdfium", "path": "testing/resources/hello_world_with_invisible_spaces.pdf", "tags": ["text", "search"] },
+
+    // ---------------- scripts and writing direction ----------------
+    { "id": "pdfjs/ArabicCIDTrueType", "sha256": "1cad1de912ba29f89a6d8b08bc5b0f84382874ffedab2c8f9e05ef608c265bb1", "source": "pdfjs", "path": "test/pdfs/ArabicCIDTrueType.pdf", "discrepancies": [{ "check": "text:0", "reason": "PDFium returns logical-order base Arabic letters; pdf.js returns visual-order presentation forms. Same content, different normalisation." }], "tags": ["smoke", "rtl", "arabic", "cid"] },
+    { "id": "pdfjs/vertical", "sha256": "514511143db12309893fb69cdf98c76f2361c20da394f79fdff2c119ed7a4393", "source": "pdfjs", "path": "test/pdfs/vertical.pdf", "tags": ["cjk", "vertical"] },
+    { "id": "pdfium/arabic", "sha256": "f84f1c4129811257c8160d36947a754a616ab564a243ff628540e86508932c6f", "source": "pdfium", "path": "testing/resources/arabic.pdf", "tags": ["rtl", "arabic"] },
+    { "id": "pdfium/arabic_actual_text_ordering", "sha256": "81a0ab6d6c07cf42e7cf9f73ac3f928f0cc9c71f9deace8db9f5125d420f13eb", "source": "pdfium", "path": "testing/resources/arabic_actual_text_ordering.pdf", "tags": ["rtl", "actualtext"] },
+    { "id": "pdfium/hebrew_mirrored", "sha256": "03f74864b9127c68eeabba2632dcf4ace1aff8c25fbf5877f1b3396457d8ec01", "source": "pdfium", "path": "testing/resources/hebrew_mirrored.pdf", "tags": ["rtl", "hebrew"] },
+    { "id": "pdfium/actual_text_rtl", "sha256": "91d250a295167ec7ed84fbe290262971b5ca7fe1af64692a2a7faed09725c713", "source": "pdfium", "path": "testing/resources/actual_text_rtl.pdf", "discrepancies": [{ "check": "text:0", "reason": "PDFium honours /ActualText (Hebrew replacement text), pdf.js returns the drawn glyphs. PDFium is the better behaviour for copy/search." }], "tags": ["rtl", "actualtext"] },
+    { "id": "pdfium/vertical_text", "sha256": "6dcffef7a8f7951f61ef819e856c29d2a539df5d5a3e653bfd9aff36c3cffc3d", "source": "pdfium", "path": "testing/resources/vertical_text.pdf", "tags": ["vertical"] },
+    { "id": "pdfium/rotated_text", "sha256": "9b1356570d111afaed4c300da3479ac094d320a38f652729514c1064f0c17e5a", "source": "pdfium", "path": "testing/resources/rotated_text.pdf", "tags": ["text", "rotation"] },
+    { "id": "pdfium/rotated_text_90", "sha256": "861824e46c3a2b6b1aa3a1d57900b25c7181c3f2f95e5cb98a387138d74f29ea", "source": "pdfium", "path": "testing/resources/rotated_text_90.pdf", "tags": ["text", "rotation"] },
+
+    // ---------------- images, colour, transparency ----------------
+    { "id": "pdfjs/alphatrans", "sha256": "234c0ab8e9458f4d17133b08d2b66170eeb92be2a80e1508aa5117a2bf568f63", "source": "pdfjs", "path": "test/pdfs/alphatrans.pdf", "tags": ["smoke", "transparency"] },
+    { "id": "pdfjs/blendmode", "sha256": "39ce34c2d32738c7c94970fd76559ecb9efd671f5ab99e515a853674e7a824ce", "source": "pdfjs", "path": "test/pdfs/blendmode.pdf", "tags": ["transparency", "blend"] },
+    { "id": "pdfjs/cmykjpeg", "sha256": "659d6b19912f63db988b0b26b9bde0e6d8100667ef162051a4a84ea8e5b90272", "source": "pdfjs", "path": "test/pdfs/cmykjpeg.pdf", "tags": ["images", "jpeg", "cmyk"] },
+    { "id": "pdfjs/devicen", "sha256": "1fbaf094e1c714513aea19258e74269b6b5365ea769e288a8e142773f6cf2b94", "source": "pdfjs", "path": "test/pdfs/devicen.pdf", "tags": ["color", "devicen"] },
+    { "id": "pdfjs/tiling-pattern-box", "sha256": "b67ae1bd9c8064f4ddc94b10c9c80fb2aeac668694a2cb4c2cd840712ba7190b", "source": "pdfjs", "path": "test/pdfs/tiling-pattern-box.pdf", "tags": ["pattern"] },
+    { "id": "pdfjs/shading_extend", "sha256": "f71e22d120201b289e5fad9609060bb06611db387921e946878aef35db079774", "source": "pdfjs", "path": "test/pdfs/shading_extend.pdf", "tags": ["shading"] },
+    { "id": "pdfjs/jbig2_symbol_offset", "sha256": "305b71c67829ef0bb8bddab9fa3ee763dcecd173f5fd996740d17212888fa97d", "source": "pdfjs", "path": "test/pdfs/jbig2_symbol_offset.pdf", "tags": ["images", "jbig2"] },
+    { "id": "pdfjs/issue5481", "sha256": "95a47b344b6121e7e648cab049c9fabff020f01120920a6c6c48332bf4f7e75b", "source": "pdfjs", "path": "test/pdfs/issue5481.pdf", "tags": ["images", "photo", "no-text"] },
+    { "id": "pdfjs/issue11144_reduced", "sha256": "3342fa04cb3bd01bed1be5ee26256951f7b9ef900132ee2dd2b20a2621b22a2d", "source": "pdfjs", "path": "test/pdfs/issue11144_reduced.pdf", "tags": ["optional-content"] },
+    { "id": "pdfium/jpx_lzw", "sha256": "ba14897a4139944e56674fefe176a56f29326e69ff2baf3e07ba096b520def78", "source": "pdfium", "path": "testing/resources/jpx_lzw.pdf", "tags": ["images", "jpx"] },
+    { "id": "pdfium/matte", "sha256": "1cb3e73363cf17f0ed49919fe38653b1cddf9f11245205e8de3658218430033c", "source": "pdfium", "path": "testing/resources/matte.pdf", "tags": ["images", "smask"] },
+    { "id": "pdfium/many_rectangles", "sha256": "67cb2e4891a2ac042dfe941e5808e86f59b05af5fe5e499289d963be2cd6ce70", "source": "pdfium", "path": "testing/resources/many_rectangles.pdf", "tags": ["vector"] },
+    { "id": "pdfium/dashed_lines", "sha256": "f3871dd2d47db91ea389043dd3ee1fd7334f2bd0862746d3caf8de3db8ba278a", "source": "pdfium", "path": "testing/resources/dashed_lines.pdf", "tags": ["vector"] },
+    { "id": "pdfium/pattern_fill", "sha256": "3bbf73927184121d25923b9b3ea34d38c74b7d5f392afaa53401eb2920fd4574", "source": "pdfium", "path": "testing/resources/pattern_fill.pdf", "tags": ["pattern"] },
+
+    // ---------------- page geometry ----------------
+    { "id": "pdfjs/sizes", "sha256": "5fa399fa5e639c7d5ca03ab1f50047c4f7f1c218043ffda3eb76e99cc36437f1", "source": "pdfjs", "path": "test/pdfs/sizes.pdf", "tags": ["smoke", "geometry", "sizes"] },
+    { "id": "pdfjs/rotation", "sha256": "5087c2afe763d145537d652bb3bc6c321ace3a267b2679ae2c178add3ba7f1d9", "source": "pdfjs", "path": "test/pdfs/rotation.pdf", "tags": ["geometry", "rotation"] },
+    { "id": "pdfium/cropped_text", "sha256": "1e2a6b5f13c77d8c0611ac7fcde88cd28352c7c0eb8a36bc593e2d91ef3c4ccc", "source": "pdfium", "path": "testing/resources/cropped_text.pdf", "tags": ["geometry", "crop"] },
+    { "id": "pdfium/cropped_no_overlap", "sha256": "9ec5b72e3d23e0a3e3b1f2c91ac08e622210ff34999aa48716a46e351e1e2ed8", "source": "pdfium", "path": "testing/resources/cropped_no_overlap.pdf", "discrepancies": [{ "check": "size:0", "reason": "CropBox does not intersect MediaBox (undefined by the spec). PDFium falls back to the MediaBox; pdf.js uses the CropBox." }], "tags": ["geometry", "crop"] },
+    { "id": "pdfium/rectangles_multi_pages", "sha256": "1cf52ea072189d359b16470561400327b5b33e74b1de7a01250dae752cd6844d", "source": "pdfium", "path": "testing/resources/rectangles_multi_pages.pdf", "tags": ["multipage", "vector"] },
+
+    // ---------------- navigation: outlines, labels, links ----------------
+    { "id": "pdfium/bookmarks", "sha256": "209e12a35d2282091216f76993543b22f851343188d6570c1488b34f1ba4aa5e", "source": "pdfium", "path": "testing/resources/bookmarks.pdf", "tags": ["smoke", "outline"], "expect": { "outlineMin": 1 } },
+    { "id": "pdfium/bookmarks_circular", "sha256": "823d93ca64c41e79da176f03a5f583bc0ad667014c96f3b8e3bb36460b33dfb7", "source": "pdfium", "path": "testing/resources/bookmarks_circular.pdf", "tags": ["outline", "malformed", "hostile"] },
+    { "id": "pdfium/page_labels", "sha256": "162a1d7f1a545d0d2f29edaf2a7f011c4495ac5e478bab64e9b9b84719045bdb", "source": "pdfium", "path": "testing/resources/page_labels.pdf", "tags": ["labels"] },
+    { "id": "pdfium/goto_action", "sha256": "0c4afe3a95772526dc797816c9e7ea06aaede0590633637503fa8c7008e50a68", "source": "pdfium", "path": "testing/resources/goto_action.pdf", "tags": ["links", "actions"] },
+    { "id": "pdfium/named_dests", "sha256": "817f8b5cd3071c5f3c8dc26a186ca4939ec0f954a877a4755f0083fa88d98856", "source": "pdfium", "path": "testing/resources/named_dests.pdf", "tags": ["links", "outline"] },
+    { "id": "pdfium/uri_action", "sha256": "9277fcad77b388975e86c0ee742f5fbed297b771ff6885b92635cfe85559cbe9", "source": "pdfium", "path": "testing/resources/uri_action.pdf", "tags": ["links", "uri"] },
+    { "id": "pdfium/uri_action_nonascii", "sha256": "f9253a6ea8ebc806a2dc665e897932f7434cba92ef738565fabffe3638c088c6", "source": "pdfium", "path": "testing/resources/uri_action_nonascii.pdf", "tags": ["links", "uri"] },
+    { "id": "pdfium/links_highlights_annots", "sha256": "d6b813376c52b326a0eac798d215eb135054ba77fdaa2c059f99e57d6726ac9f", "source": "pdfium", "path": "testing/resources/links_highlights_annots.pdf", "tags": ["links", "annotations"] },
+    { "id": "pdfium/weblinks", "sha256": "158f3335cb1f0b56b0b0873168267c89bf55c2b9a4f7ff1b6f1229b9859dc402", "source": "pdfium", "path": "testing/resources/weblinks.pdf", "tags": ["links", "text"] },
+    { "id": "pdfjs/file_url_link", "sha256": "008215b7ccd2caa787789140de7321e36225b6a545442212a6650803c1b820df", "source": "pdfjs", "path": "test/pdfs/file_url_link.pdf", "tags": ["links", "hostile"] },
+    { "id": "pdfjs/issue14802", "sha256": "7aeaac982d208171e68d9d7ec2d6aaa284f46239479d278cb821b5407910c4b2", "source": "pdfjs", "path": "test/pdfs/issue14802.pdf", "tags": ["links", "uri"] },
+
+    // ---------------- encryption ----------------
+    { "id": "pdfium/encrypted", "sha256": "cbbead7185d9cd46daecaf60165a9aa7b9f2daceb3623218c328cb015ae862d5", "source": "pdfium", "path": "testing/resources/encrypted.pdf", "tags": ["smoke", "password"], "password": "1234", "expect": { "open": "password" } },
+    { "id": "pdfium/encrypted_hello_world_r2", "sha256": "267945749086981b8727c4931cfc8a24973c3aa5819ea8a392fa8bd0d637ee84", "source": "pdfium", "path": "testing/resources/encrypted_hello_world_r2.pdf", "tags": ["password", "rc4"], "password": "hôtel", "expect": { "open": "password", "text": [{ "page": 0, "contains": "Hello, world!" }] } },
+    { "id": "pdfium/encrypted_hello_world_r3", "sha256": "cdbfd4f6728786dc70c7514bd5c669a38b03bba38be3e91ec46ccb02168b9ad3", "source": "pdfium", "path": "testing/resources/encrypted_hello_world_r3.pdf", "tags": ["password", "rc4"], "password": "hôtel", "expect": { "open": "password", "text": [{ "page": 0, "contains": "Hello, world!" }] } },
+    { "id": "pdfium/encrypted_hello_world_r5", "sha256": "9f2bdfbbd675fcaa40e89240f4f66be81621afa33114d24e8f568fb727ad37d9", "source": "pdfium", "path": "testing/resources/encrypted_hello_world_r5.pdf", "tags": ["password", "aes256"], "password": "hôtel", "expect": { "open": "password", "text": [{ "page": 0, "contains": "Hello, world!" }] } },
+    { "id": "pdfium/encrypted_hello_world_r6", "sha256": "a5bcee67d2731547d8e6956cbb0d41eddeef4ca80c378c9dba8bc97961ece064", "source": "pdfium", "path": "testing/resources/encrypted_hello_world_r6.pdf", "tags": ["password", "aes256"], "password": "hôtel", "expect": { "open": "password", "text": [{ "page": 0, "contains": "Hello, world!" }] } },
+    { "id": "pdfjs/issue6010_1", "sha256": "d7fd95e016b7d43bc9eed1041b0cdd6ee00e3dd902e50d0307b0a428782c543c", "source": "pdfjs", "path": "test/pdfs/issue6010_1.pdf", "tags": ["password"], "password": "abc", "expect": { "open": "password" } },
+    { "id": "pdfjs/issue6010_2", "sha256": "53008dd89a45e313112ad6c6f17ade3e5c8f33f3106028a4e5b61f570b270ce9", "source": "pdfjs", "path": "test/pdfs/issue6010_2.pdf", "tags": ["password", "unicode-password"], "password": "æøå", "expect": { "open": "password" } },
+    { "id": "pdfjs/issue3371", "sha256": "0c3fb45d9b61ea762b4b3298c8c47e5375e83d151d356d87d740bcb85d953473", "source": "pdfjs", "path": "test/pdfs/issue3371.pdf", "tags": ["password"], "password": "ELXRTQWS", "expect": { "open": "password" } },
+    { "id": "pdfjs/saslprep-r6", "sha256": "e570bea23d5e1b8a796ffc3701920f04fc114543b4b25e8f03bd913ca47f1da9", "source": "pdfjs", "path": "test/pdfs/saslprep-r6.pdf", "tags": ["password", "saslprep"], "password": "SªSL­prep", "expect": { "open": "password" } },
+    { "id": "pdfjs/issue15893_reduced", "sha256": "3c2815853e6fe5c34feb76bb14402cbc46bbd484ecd57b672fc03577d0458ee8", "source": "pdfjs", "path": "test/pdfs/issue15893_reduced.pdf", "tags": ["password"], "password": "test", "expect": { "open": "password" } },
+
+    // ---------------- annotations (display only) ----------------
+    { "id": "pdfjs/annotation-highlight", "sha256": "72b6387356ccfdfb95a0a5eff5e1ceb9b7667019807d7b04abaf64dad7ea143a", "source": "pdfjs", "path": "test/pdfs/annotation-highlight.pdf", "tags": ["smoke", "annotations"] },
+    { "id": "pdfjs/annotation-stamp", "sha256": "76d566c092c23ccbec4bb488c40dc6daec8a381cb5386452b186728652436704", "source": "pdfjs", "path": "test/pdfs/annotation-stamp.pdf", "tags": ["annotations"] },
+    { "id": "pdfjs/annotation-freetext", "sha256": "318ed4bead93fa6ff023571b17ddca41e82fe2347b497ea24903a11e1892fb71", "source": "pdfjs", "path": "test/pdfs/annotation-freetext.pdf", "tags": ["annotations"] },
+    { "id": "pdfjs/annotation-line", "sha256": "cea9ed8cf5726fa643da0c083bc8db8df790ab5e7ee9a2b62224aab73d9fa742", "source": "pdfjs", "path": "test/pdfs/annotation-line.pdf", "tags": ["annotations"] },
+    { "id": "pdfjs/annotation-square-circle", "sha256": "88ed9ed813c3585b3098b9f4eef5107426f7829044117cd87f77bdc38a8e3f72", "source": "pdfjs", "path": "test/pdfs/annotation-square-circle.pdf", "tags": ["annotations"] },
+    { "id": "pdfjs/annotation-ink-without-appearance", "sha256": "663c7419206b1995c6ae651a1cbf8dbf9d89f0f6b3e61014cf545e21335e75b8", "source": "pdfjs", "path": "test/pdfs/annotation-ink-without-appearance.pdf", "tags": ["annotations", "no-appearance"] },
+    { "id": "pdfjs/annotation_hidden_print", "sha256": "d084450dfbb7d5c53593ed8f0a005553bd0ae797e34b3a1c8c00c7eec2fc5a9d", "source": "pdfjs", "path": "test/pdfs/annotation_hidden_print.pdf", "tags": ["annotations", "flags"] },
+    { "id": "pdfium/annots", "sha256": "e5e11af7437553924363d1a499b7671e1eb9cd72c13a41b9c9c8e40a931c2aa4", "source": "pdfium", "path": "testing/resources/annots.pdf", "tags": ["annotations"] },
+    { "id": "pdfium/ink_annot", "sha256": "4295fb9a1f72274deadef94d85b84a5d96350a977b88d302bbd4ea9569d4d0e6", "source": "pdfium", "path": "testing/resources/ink_annot.pdf", "tags": ["annotations"] },
+    { "id": "pdfium/annotation_stamp_with_ap", "sha256": "b3952e8ed5fac840f178b38fb08676ce59bc903bacdec14b868eacafdeca1a07", "source": "pdfium", "path": "testing/resources/annotation_stamp_with_ap.pdf", "tags": ["annotations"] },
+
+    // ---------------- forms (display only) ----------------
+    { "id": "pdfjs/annotation-text-widget", "sha256": "9f091ceb368ad0406094efaa6c50d5033735ee52f383e0973dc53a7467089d7c", "source": "pdfjs", "path": "test/pdfs/annotation-text-widget.pdf", "tags": ["smoke", "forms"], "expect": { "forms": "xfa-foreground" } },
+    { "id": "pdfjs/annotation-choice-widget", "sha256": "2fcab2aed82afe9775359c1d166fb7aae77e99d25fe03be177e233d02d572538", "source": "pdfjs", "path": "test/pdfs/annotation-choice-widget.pdf", "tags": ["forms"], "expect": { "forms": "xfa-foreground" } },
+    { "id": "pdfjs/annotation-button-widget", "sha256": "f7b1c9c7b2ecb909f6b168cc1b137230076533f977a205472b212b7f0d3a78d7", "source": "pdfjs", "path": "test/pdfs/annotation-button-widget.pdf", "tags": ["forms"], "expect": { "forms": "xfa-foreground" } },
+    { "id": "pdfjs/annotation-tx", "sha256": "c7be52654eaede8a9f33757168957f938f56e73fcd4c53539db5672dee426208", "source": "pdfjs", "path": "test/pdfs/annotation-tx.pdf", "tags": ["forms", "no-appearance"], "expect": { "forms": "acroform" } },
+    { "id": "pdfjs/checkbox-bad-appearance", "sha256": "0cd13bf7375a2b6b9b01bb694aefcfe9dac225105cb9ad7e03798783b3318ad9", "source": "pdfjs", "path": "test/pdfs/checkbox-bad-appearance.pdf", "tags": ["forms", "malformed"] },
+    { "id": "pdfium/text_form", "sha256": "62fab6a70e762c832152132b84ee0d1fff0d63a5e2c99f2ae8e7cbe6aad9876f", "source": "pdfium", "path": "testing/resources/text_form.pdf", "tags": ["forms"], "expect": { "forms": "acroform" } },
+    { "id": "pdfium/text_form_multiple", "sha256": "6eb7f060584fff64452f2921cb459a7510414eb2ee4fb0b065cd19db08202f03", "source": "pdfium", "path": "testing/resources/text_form_multiple.pdf", "tags": ["forms"], "expect": { "forms": "acroform" } },
+    { "id": "pdfium/combobox_form", "sha256": "e96064f079baf65b1ebd23b152c2037eba68345a48e7b845a3c0bc3620cd7d26", "source": "pdfium", "path": "testing/resources/combobox_form.pdf", "tags": ["forms"], "expect": { "forms": "acroform" } },
+    { "id": "pdfium/listbox_form", "sha256": "4dd3b8b958eb56cb49afbb6b60b14b6d6ecba788181e088aa68be459fed10b49", "source": "pdfium", "path": "testing/resources/listbox_form.pdf", "tags": ["forms"], "expect": { "forms": "acroform" } },
+    { "id": "pdfium/click_form", "sha256": "afbd6e340f4f8c35e97baad6f4459cae8a55aec109c5f242827974158dbbd417", "source": "pdfium", "path": "testing/resources/click_form.pdf", "tags": ["forms"], "expect": { "forms": "acroform" } },
+    { "id": "pdfium/simple_xfa", "sha256": "82e0af732b472b023b3c50940cac0d76b6a84c25dab2b4a8de79fd0a6b7cdb89", "source": "pdfium", "path": "testing/resources/simple_xfa.pdf", "tags": ["xfa"], "expect": { "forms": "xfa-full" } },
+    { "id": "pdfjs/xfa_issue14315", "sha256": "d039a40ea28384bae8d1a24929a4288aae1aeb433c441fd39c04fad618fa6f19", "source": "pdfjs", "path": "test/pdfs/xfa_issue14315.pdf", "tags": ["xfa"], "expect": { "forms": "xfa-full" } },
+    { "id": "pdfium/two_signatures", "sha256": "47b9aa0d893f1f70a675a9d703fc072b0a435ad566ac789ff15b167e15443119", "source": "pdfium", "path": "testing/resources/two_signatures.pdf", "tags": ["signatures"] },
+
+    // ---------------- active content that must stay inert ----------------
+    { "id": "pdfium/js", "sha256": "27e6787a46420b28292965c21fe8ec76e1e86ddf17488a8d373d3c93aa6c0000", "source": "pdfium", "path": "testing/resources/js.pdf", "tags": ["javascript", "hostile"] },
+    { "id": "pdfium/annot_javascript", "sha256": "9d57762118d9073d053f7e55475f0fb703540696c19fa97a1a615d127b5e6676", "source": "pdfium", "path": "testing/resources/annot_javascript.pdf", "tags": ["javascript", "hostile"] },
+    { "id": "pdfium/document_aactions", "sha256": "07a799be683ea9e7c6b38ad175f0c2baf11126d5f2202f69a10da7805c9e8cfc", "source": "pdfium", "path": "testing/resources/document_aactions.pdf", "discrepancies": [{ "check": "pageCount", "reason": "Page tree /Count says 3 but only 1 page exists. PDFium trusts /Count, pdf.js repairs it. Missing pages fail with a typed PageLoadException and show as error placeholders." }, { "check": "render:*", "reason": "Pages 2-3 do not exist (see pageCount)." }], "tags": ["javascript", "actions", "hostile"] },
+    { "id": "pdfium/launch_action", "sha256": "5cdc6456e880fa657bfa3241fc939af8e5c1b468afbf1aae6858bba213193a29", "source": "pdfium", "path": "testing/resources/launch_action.pdf", "tags": ["actions", "hostile"] },
+    { "id": "pdfium/embedded_attachments", "sha256": "a1a8de01f6201abcc3a5050fd5047336c6182305eedc3f8c10b49712296a968b", "source": "pdfium", "path": "testing/resources/embedded_attachments.pdf", "tags": ["attachments", "hostile"] },
+    { "id": "pdfjs/js-buttons", "sha256": "4679ee03ee84b48d8b67ba39975e946de49216ba744a729fa30ef8f32c3ea9ba", "source": "pdfjs", "path": "test/pdfs/js-buttons.pdf", "tags": ["javascript", "forms", "hostile"] },
+
+    // ---------------- malformed: must fail cleanly or render, never crash or hang ----------------
+    { "id": "pdfium/bug_xrefv4_loop", "sha256": "fd7c7174ed00dd18dec996dfffeacbb3524632c02f406c05d8fc560cb87c2c28", "source": "pdfium", "path": "testing/resources/bug_xrefv4_loop.pdf", "tags": ["malformed"], "expect": { "open": "any" } },
+    { "id": "pdfium/trailer_unterminated", "sha256": "7c4227c1736a82775492c5341282394ce25d45c31f0876d9c7a9c2e17837bd93", "source": "pdfium", "path": "testing/resources/trailer_unterminated.pdf", "tags": ["malformed"], "expect": { "open": "any" } },
+    { "id": "pdfium/parser_rebuildxref_error_notrailer", "sha256": "d47175f63d3734205e652c3640a42214b956062c299ce761d4c0353e69bac1f8", "source": "pdfium", "path": "testing/resources/parser_rebuildxref_error_notrailer.pdf", "tags": ["malformed"], "expect": { "open": "any" } },
+    { "id": "pdfium/empty_xref", "sha256": "e2b954b03b4c971bfee4e5d79712b2f32d13b54536799d0d0256d5fd13b79b9a", "source": "pdfium", "path": "testing/resources/empty_xref.pdf", "tags": ["malformed"], "expect": { "open": "any" } },
+    { "id": "pdfium/no_page_count", "sha256": "00194ed876f5e22a47f7e97301612759edae5612daab306aca9ceaea11df9bd4", "source": "pdfium", "path": "testing/resources/no_page_count.pdf", "discrepancies": [{ "check": "pageCount", "reason": "Page tree without /Count; PDFium and pdf.js recover different page counts." }, { "check": "size:*", "reason": "pdf.js reports 0x0 for its recovered page 2." }], "tags": ["malformed"], "expect": { "open": "any" } },
+    { "id": "pdfium/circular_viewer_ref", "sha256": "1ad0435f05931f6046129ac8c6fac8c22b8163675f20bd2d3407236b4ff1baec", "source": "pdfium", "path": "testing/resources/circular_viewer_ref.pdf", "tags": ["malformed"], "expect": { "open": "any" } },
+    { "id": "pdfium/zero_length_stream", "sha256": "624d678b77aff88f91017c60a1567dbff5ad2408198f96693e0e1d2958468998", "source": "pdfium", "path": "testing/resources/zero_length_stream.pdf", "tags": ["malformed"], "expect": { "open": "any" } },
+    { "id": "pdfium/page_tree_empty_node", "sha256": "d7f5e57cbf9d5b9a53a5d69b88f8f22f557a5ae8aa5b0c59f6e7cad7b4637009", "source": "pdfium", "path": "testing/resources/page_tree_empty_node.pdf", "tags": ["malformed"], "expect": { "open": "any" } },
+    { "id": "pdfium/bad_page_type", "sha256": "f19583f988d4eb941e8f8178305cd40a3ad918d1d232a0e62fe4505204116466", "source": "pdfium", "path": "testing/resources/bad_page_type.pdf", "discrepancies": [{ "check": "page:1", "reason": "Second page object has a wrong /Type. pdf.js accepts it; PDFium refuses to load it (typed PageLoadException, shown as an error placeholder)." }, { "check": "render:1", "reason": "See page:1." }, { "check": "size:1", "reason": "Size of the unreadable page is unknown; the viewer lays it out as a US Letter placeholder." }], "tags": ["malformed"], "expect": { "open": "any" } },
+    { "id": "pdfium/xref_free_objects", "sha256": "088875f05def22167a434f993a534d96613b05942fe3572bca21e2153b2a5610", "source": "pdfium", "path": "testing/resources/xref_free_objects.pdf", "tags": ["malformed"], "expect": { "open": "any" } },
+    { "id": "pdfium/linearized", "sha256": "ab49d0fa2790cecc932a2130a675058ff80aaedb453a7f9321e560d171f6cfff", "source": "pdfium", "path": "testing/resources/linearized.pdf", "tags": ["linearized"] },
+    { "id": "pdfjs/bug1020226", "sha256": "50e91d373aa313537972519c65b050f8d4d5bd996859fa20756432c2029c3ff6", "source": "pdfjs", "path": "test/pdfs/bug1020226.pdf", "tags": ["smoke", "malformed"], "expect": { "open": "any" } },
+    { "id": "pdfjs/issue9105_other", "sha256": "6829f033d91558fcea1c34271efa88b535be9c8fcf0abdeec616c95b8e51d385", "source": "pdfjs", "path": "test/pdfs/issue9105_other.pdf", "tags": ["malformed"], "expect": { "open": "any" } },
+    { "id": "pdfjs/issue5954", "sha256": "d8a3d013a02af9ac09dae86b4deaf9ed0c9b575ea8954c8580df54552bc2a739", "source": "pdfjs", "path": "test/pdfs/issue5954.pdf", "tags": ["malformed"], "expect": { "open": "any" } },
+    { "id": "pdfjs/bug1552113", "sha256": "8ea1ed25b31215d5e3f21b09cb1f8f7d76cfdcfa9346b82cbe6c3291c43d0f78", "source": "pdfjs", "path": "test/pdfs/bug1552113.pdf", "tags": ["annotations", "hostile"] },
+    { "id": "pdfjs/issue7115", "sha256": "309de181de6cd58e47d2b401bd55282aadb43d1820396fe6f02f4df388202d2e", "source": "pdfjs", "path": "test/pdfs/issue7115.pdf", "tags": ["annotations", "malformed"] },
+    { "id": "pdfjs/issue3879r", "sha256": "50de2f1186f3aaa5639bbda9e0f91220a4f2c08ee6fdacc62d7993fd2dac2f40", "source": "pdfjs", "path": "test/pdfs/issue3879r.pdf", "tags": ["malformed"], "expect": { "open": "any" } },
+    { "id": "pdfjs/issue1155r", "sha256": "6bbb946b14c20b45835b6873c052a9be27982c57c50eed6e11682ce14e517acc", "source": "pdfjs", "path": "test/pdfs/issue1155r.pdf", "tags": ["malformed"], "expect": { "open": "any" } },
+    { "id": "pdfjs/issue4436r", "sha256": "45932053f115b1ebec02cbe266b9028d8fba305a317d931d45872b29a2653857", "source": "pdfjs", "path": "test/pdfs/issue4436r.pdf", "tags": ["malformed"], "expect": { "open": "any" } },
+    { "id": "pdfjs/issue2128r", "sha256": "4820d9475f71cdc7ee60f4f8a5c7ec7268bab9f249305a70b3cc65e5bb1b3a64", "source": "pdfjs", "path": "test/pdfs/issue2128r.pdf", "tags": ["malformed"], "expect": { "open": "any" } },
+    { "id": "pdfjs/asciihexdecode", "sha256": "17cc92aa58ec48f75b01c6b6e7f8c8bade0a36f7295d0f833a16bafae854dc79", "source": "pdfjs", "path": "test/pdfs/asciihexdecode.pdf", "tags": ["filters"], "expect": { "open": "any" } },
+
+    // ---------------- larger files ----------------
+    { "id": "pdfjs/issue9262_reduced", "sha256": "d05dc91e7ab4dc33bfc7a383afbfa1512b69231c75f1f12247dd26d71d6b697f", "source": "pdfjs", "path": "test/pdfs/issue9262_reduced.pdf", "tags": ["large"] },
+    { "id": "pdfjs/issue6894", "sha256": "7151196d916f7b7df6dffcf2c0ff83c89e0562c7a1a3b23a3c828eb7313b4f73", "source": "pdfjs", "path": "test/pdfs/issue6894.pdf", "tags": ["large"] },
+
+    // ---------------- PDF 2.0 ----------------
+    { "id": "pdf20/simple", "sha256": "296d2a0b2ce19b606f29265694f194a754fbc61783982b5b8d730e8637482236", "source": "pdf20", "path": "Simple PDF 2.0 file.pdf", "tags": ["smoke", "pdf20"] },
+    { "id": "pdf20/utf8-string-annotation", "sha256": "f3a018213564a420db81062a0e584fbcc5f705e353ed477da43bab6222f137b6", "source": "pdf20", "path": "PDF 2.0 UTF-8 string and annotation.pdf", "tags": ["pdf20", "annotations", "unicode"] },
+    { "id": "pdf20/incremental-save", "sha256": "9b25d59d07034634a990e79db6ef82b9f86769d9b94d8d8635f20d06aaec9d18", "source": "pdf20", "path": "PDF 2.0 via incremental save.pdf", "tags": ["pdf20", "incremental"] },
+    { "id": "pdf20/offset-start", "sha256": "a5b92313770f16ba1db649ccdc97d42f7744659c691897538734eebdc1bc9e9a", "source": "pdf20", "path": "PDF 2.0 with offset start.pdf", "tags": ["pdf20", "malformed"] },
+    { "id": "pdf20/page-output-intent", "sha256": "7c13afe3078a4c202184edce3169f7bc842c8fd3db9da7140af6bc0b3b2fa44a", "source": "pdf20", "path": "PDF 2.0 with page level output intent.pdf", "tags": ["pdf20", "color"] },
+    { "id": "pdf20/image-bpc", "sha256": "fc517dd0d4c72d1b11e3449acc3e816d2719dc14e69a7e14b84da02808103370", "source": "pdf20", "path": "PDF 2.0 image with BPC.pdf", "tags": ["pdf20", "images"] },
+    { "id": "pdf20/utf8-test", "sha256": "a7ca717ef062df0a65e58487d26358c81424b76084a2000ca1c74b9e5776b7a1", "source": "pdf20", "path": "pdf20-utf8-test.pdf", "tags": ["pdf20", "unicode", "outline"] },
+
+    // ---------------- tagged (PDF/UA) ----------------
+    { "id": "verapdf/ua-7.1-t01-pass-a", "sha256": "cc57668afd86160fafa324e2e6c57ce2cb8dc087778b7c74559c85fa52f3a846", "source": "verapdf", "path": "PDF_UA-1/7.1 General/7.1-t01-pass-a.pdf", "tags": ["tagged"] },
+    { "id": "verapdf/ua-7.10-t01-pass-a", "sha256": "44d599e2a157698893280fb8d7064f6d1ccd53567b79b6fad2551cb9603498a4", "source": "verapdf", "path": "PDF_UA-1/7.10 Optional content/7.10-t01-pass-a.pdf", "tags": ["tagged", "optional-content"] },
+    { "id": "verapdf/ua-7.11-t01-pass-a", "sha256": "7d4fe2837cb4d0451e5767c33d532cc427c0048886be5a02d8d9d3e2661e1a9b", "source": "verapdf", "path": "PDF_UA-1/7.11 Embedded files/7.11-t01-pass-a.pdf", "tags": ["tagged", "attachments"] },
+    { "id": "verapdf/ua-7.16-t01-pass-a", "sha256": "027d5e0a0c292e77828a52cc861455b5a868f7668aac476dd4a790c721c513a0", "source": "verapdf", "path": "PDF_UA-1/7.16 Security/7.16-t01-pass-a.pdf", "tags": ["tagged", "encryption"] },
+    { "id": "verapdf/ua-7.18.1-t01-pass-a", "sha256": "b48f1f6eff429bf13d314ff4f3b066edb5094550a4545ffdc45d51b1f8b1fbe9", "source": "verapdf", "path": "PDF_UA-1/7.18 Annotations/7.18.1 General/7.18.1-t01-pass-a.pdf", "tags": ["tagged", "annotations"] },
+
+    // ---------------- extended tier (opt-in: fetch --extended) ----------------
+    { "id": "web/iso32000-2008", "sha256": "9de0ca9e8570d6209e8bd48a355be8eb6ec376acfc3fc3ae97cd8730351417ff", "source": "web", "path": "PDF32000_2008.pdf", "tier": "extended", "url": "https://opensource.adobe.com/dc-acrobat-sdk-docs/pdfstandards/PDF32000_2008.pdf",
+      "tags": ["large", "long", "outline", "links", "labels"], "pages": [0, 100],
+      "expect": { "outlineMin": 100, "search": [{ "query": "cross-reference table", "minHits": 1 }] },
+      "notes": "ISO 32000-1:2008 copy published by Adobe. Fetch for local testing only; do not redistribute." }
+  ]
+}

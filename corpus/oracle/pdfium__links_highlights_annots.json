@@ -1,0 +1,23 @@
+{
+ "id": "pdfium/links_highlights_annots",
+ "engine": "pdf.js 6.5.438",
+ "ok": true,
+ "error": null,
+ "numPages": 1,
+ "pages": [
+  {
+   "index": 0,
+   "width": 612,
+   "height": 792,
+   "rotate": 0,
+   "text": "Link Annotations\nExternal Link\nPDF Reference, Version 1.7, Section 8.4.5 defines Annotations",
+   "links": 1,
+   "widgets": 4,
+   "annotations": 6,
+   "error": null
+  }
+ ],
+ "outline": null,
+ "labels": null,
+ "hasForms": false
+}

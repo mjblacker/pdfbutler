@@ -1,0 +1,33 @@
+{
+ "id": "pdf20/utf8-test",
+ "engine": "pdf.js 6.5.438",
+ "ok": true,
+ "error": null,
+ "numPages": 1,
+ "pages": [
+  {
+   "index": 0,
+   "width": 595.32,
+   "height": 841.92,
+   "rotate": 0,
+   "text": "PDF 2.0 with UTF-8 test file\nHeading Level 2\nHeading Level 3\nSome paragraph text.\n(c) 2021 PDF Association.",
+   "links": 0,
+   "widgets": 0,
+   "annotations": 0,
+   "error": null
+  }
+ ],
+ "outline": {
+  "top": 3,
+  "total": 3,
+  "titles": [
+   "PDF 2.0 with UTF-8 test file",
+   "‪‪test‪",
+   "🌈️\n"
+  ]
+ },
+ "labels": [
+  "Prefixi"
+ ],
+ "hasForms": false
+}

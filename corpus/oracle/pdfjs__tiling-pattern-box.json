@@ -1,0 +1,23 @@
+{
+ "id": "pdfjs/tiling-pattern-box",
+ "engine": "pdf.js 6.5.438",
+ "ok": true,
+ "error": null,
+ "numPages": 1,
+ "pages": [
+  {
+   "index": 0,
+   "width": 595.275574,
+   "height": 841.889771,
+   "rotate": 0,
+   "text": "",
+   "links": 0,
+   "widgets": 0,
+   "annotations": 0,
+   "error": null
+  }
+ ],
+ "outline": null,
+ "labels": null,
+ "hasForms": false
+}

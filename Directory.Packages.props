@@ -1,0 +1,25 @@
+<Project>
+  <!-- One place for every version. The PDFium native build is pinned here: upgrade it
+       deliberately, re-run the corpus suite, and review any golden-image changes. -->
+  <PropertyGroup>
+    <AvaloniaVersion>12.1.5</AvaloniaVersion>
+    <PdfiumNativeVersion>158.0.8125</PdfiumNativeVersion>
+  </PropertyGroup>
+  <ItemGroup>
+    <!-- Matches the FSharp.Core bundled with the pinned .NET 10.0.3xx SDK (see global.json). -->
+    <PackageVersion Include="FSharp.Core" Version="10.1.303" />
+    <PackageVersion Include="bblanchon.PDFium.Win32" Version="$(PdfiumNativeVersion)" />
+    <PackageVersion Include="bblanchon.PDFium.Linux" Version="$(PdfiumNativeVersion)" />
+    <PackageVersion Include="Avalonia" Version="$(AvaloniaVersion)" />
+    <PackageVersion Include="Avalonia.Desktop" Version="$(AvaloniaVersion)" />
+    <PackageVersion Include="Avalonia.Themes.Fluent" Version="$(AvaloniaVersion)" />
+    <PackageVersion Include="Avalonia.Fonts.Inter" Version="$(AvaloniaVersion)" />
+    <PackageVersion Include="Avalonia.Headless.XUnit" Version="$(AvaloniaVersion)" />
+    <PackageVersion Include="Avalonia.Skia" Version="$(AvaloniaVersion)" />
+    <PackageVersion Include="Avalonia.HarfBuzz" Version="$(AvaloniaVersion)" />
+    <PackageVersion Include="xunit.v3" Version="3.2.2" />
+    <PackageVersion Include="xunit.runner.visualstudio" Version="3.1.5" />
+    <PackageVersion Include="Microsoft.NET.Test.Sdk" Version="18.11.0" />
+    <PackageVersion Include="FsCheck" Version="3.6.0" />
+  </ItemGroup>
+</Project>

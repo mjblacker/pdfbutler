@@ -1,0 +1,28 @@
+<Project Sdk="Microsoft.NET.Sdk">
+
+  <PropertyGroup>
+    <Description>Owned PDFium adapter: native bindings, single owner thread, read-only document API.</Description>
+    <AllowUnsafeBlocks>true</AllowUnsafeBlocks>
+  </PropertyGroup>
+
+  <ItemGroup>
+    <Compile Include="Native.fs" />
+    <Compile Include="Worker.fs" />
+    <Compile Include="Engine.fs" />
+  </ItemGroup>
+
+  <ItemGroup>
+    <ProjectReference Include="..\PdfButler.Core\PdfButler.Core.fsproj" />
+  </ItemGroup>
+
+  <ItemGroup>
+    <!-- bblanchon non-V8 builds: no document JavaScript, no XFA. Version pinned in Directory.Packages.props. -->
+    <PackageReference Include="bblanchon.PDFium.Win32" />
+    <PackageReference Include="bblanchon.PDFium.Linux" />
+  </ItemGroup>
+
+  <ItemGroup>
+    <InternalsVisibleTo Include="PdfButler.Engine.Tests" />
+  </ItemGroup>
+
+</Project>

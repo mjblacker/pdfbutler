@@ -1,0 +1,34 @@
+{
+ "id": "pdf20/page-output-intent",
+ "engine": "pdf.js 6.5.438",
+ "ok": true,
+ "error": null,
+ "numPages": 2,
+ "pages": [
+  {
+   "index": 0,
+   "width": 612,
+   "height": 396,
+   "rotate": 0,
+   "text": "This image is placed at an effective resolution of 16.7dpi\nImage and text may appear slightly different between pages",
+   "links": 0,
+   "widgets": 0,
+   "annotations": 0,
+   "error": null
+  },
+  {
+   "index": 1,
+   "width": 612,
+   "height": 396,
+   "rotate": 0,
+   "text": "This image is placed at an effective resolution of 16.7dpi\nImage and text may appear slightly different between pages",
+   "links": 0,
+   "widgets": 0,
+   "annotations": 0,
+   "error": null
+  }
+ ],
+ "outline": null,
+ "labels": null,
+ "hasForms": false
+}

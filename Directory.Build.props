@@ -1,0 +1,20 @@
+<Project>
+  <PropertyGroup>
+    <TargetFramework>net10.0</TargetFramework>
+    <LangVersion>latest</LangVersion>
+    <Nullable>disable</Nullable>
+    <TreatWarningsAsErrors>false</TreatWarningsAsErrors>
+    <!-- FS3370: allow `arr[i]` indexer style. FS0760: IDisposable construction style. -->
+    <WarnOn>3390;1182</WarnOn>
+    <NoWarn>$(NoWarn);FS3370;NU1507</NoWarn>
+    <ManagePackageVersionsCentrally>true</ManagePackageVersionsCentrally>
+    <!-- PDFium native assets are only published for these RIDs by the pinned packages. -->
+    <SatelliteResourceLanguages>en</SatelliteResourceLanguages>
+    <InvariantGlobalization>false</InvariantGlobalization>
+    <!-- Central package management drops the SDK's implicit FSharp.Core; reference it explicitly. -->
+    <DisableImplicitFSharpCoreReference>true</DisableImplicitFSharpCoreReference>
+  </PropertyGroup>
+  <ItemGroup Condition="'$(MSBuildProjectExtension)' == '.fsproj'">
+    <PackageReference Include="FSharp.Core" />
+  </ItemGroup>
+</Project>

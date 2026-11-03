@@ -1,0 +1,45 @@
+{
+ "id": "pdfjs/sizes",
+ "engine": "pdf.js 6.5.438",
+ "ok": true,
+ "error": null,
+ "numPages": 3,
+ "pages": [
+  {
+   "index": 0,
+   "width": 612,
+   "height": 792,
+   "rotate": 0,
+   "text": "Normal",
+   "links": 0,
+   "widgets": 0,
+   "annotations": 0,
+   "error": null
+  },
+  {
+   "index": 1,
+   "width": 649,
+   "height": 323,
+   "rotate": 0,
+   "text": "Envelope",
+   "links": 0,
+   "widgets": 0,
+   "annotations": 0,
+   "error": null
+  },
+  {
+   "index": 2,
+   "width": 792,
+   "height": 612,
+   "rotate": 0,
+   "text": "Landscape",
+   "links": 0,
+   "widgets": 0,
+   "annotations": 0,
+   "error": null
+  }
+ ],
+ "outline": null,
+ "labels": null,
+ "hasForms": false
+}

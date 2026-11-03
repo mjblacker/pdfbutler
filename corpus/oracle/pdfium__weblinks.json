@@ -1,0 +1,23 @@
+{
+ "id": "pdfium/weblinks",
+ "engine": "pdf.js 6.5.438",
+ "ok": true,
+ "error": null,
+ "numPages": 1,
+ "pages": [
+  {
+   "index": 0,
+   "width": 600,
+   "height": 600,
+   "rotate": 0,
+   "text": "Hello, world! This is not a link.\nhttp://example.com?q=foo. This might be a link.\nhttps://example.com?q=foo. This might be a link in another font.\njavascript:alert(0). This might be a JS link.\nftp://example.org. This might be a FTP link.\nfile:///home/foo/example.txt. This might be a file link.\nThis is a rather long and pointless piece of non-link text.",
+   "links": 0,
+   "widgets": 0,
+   "annotations": 0,
+   "error": null
+  }
+ ],
+ "outline": null,
+ "labels": null,
+ "hasForms": false
+}

@@ -1,0 +1,31 @@
+{
+ "id": "verapdf/ua-7.11-t01-pass-a",
+ "engine": "pdf.js 6.5.438",
+ "ok": true,
+ "error": null,
+ "numPages": 1,
+ "pages": [
+  {
+   "index": 0,
+   "width": 612,
+   "height": 792,
+   "rotate": 0,
+   "text": "File specification\nDocument number 1 (click to open next document)",
+   "links": 1,
+   "widgets": 0,
+   "annotations": 1,
+   "error": null
+  }
+ ],
+ "outline": {
+  "top": 3,
+  "total": 3,
+  "titles": [
+   "7.11-1 Embedded files",
+   "UF and F entries are present in Embedded files dictionary",
+   "Expected result: pass"
+  ]
+ },
+ "labels": null,
+ "hasForms": false
+}

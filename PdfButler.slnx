@@ -1,0 +1,16 @@
+<Solution>
+  <Folder Name="/src/">
+    <Project Path="src/PdfButler.App/PdfButler.App.fsproj" />
+    <Project Path="src/PdfButler.Core/PdfButler.Core.fsproj" />
+    <Project Path="src/PdfButler.Pdfium/PdfButler.Pdfium.fsproj" />
+  </Folder>
+  <Folder Name="/tests/">
+    <Project Path="tests/PdfButler.App.Tests/PdfButler.App.Tests.fsproj" />
+    <Project Path="tests/PdfButler.Core.Tests/PdfButler.Core.Tests.fsproj" />
+    <Project Path="tests/PdfButler.Engine.Tests/PdfButler.Engine.Tests.fsproj" />
+    <Project Path="tests/PdfButler.TestSupport/PdfButler.TestSupport.fsproj" />
+  </Folder>
+  <Folder Name="/tools/">
+    <Project Path="tools/PdfButler.Corpus/PdfButler.Corpus.fsproj" />
+  </Folder>
+</Solution>

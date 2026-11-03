@@ -1,0 +1,36 @@
+<Project Sdk="Microsoft.NET.Sdk">
+
+  <PropertyGroup>
+    <OutputType>WinExe</OutputType>
+    <AssemblyName>PdfButler</AssemblyName>
+    <RootNamespace>PdfButler.App</RootNamespace>
+    <ApplicationManifest>app.manifest</ApplicationManifest>
+    <!-- Ordinary managed build for the edit/run loop. ReadyToRun / NativeAOT are a later, measured decision. -->
+    <TieredPGO>true</TieredPGO>
+    <InvariantGlobalization>false</InvariantGlobalization>
+  </PropertyGroup>
+
+  <ItemGroup>
+    <Compile Include="Diagnostics.fs" />
+    <Compile Include="PageRenderer.fs" />
+    <Compile Include="PdfView.fs" />
+    <Compile Include="Dialogs.fs" />
+    <Compile Include="MainWindow.fs" />
+    <Compile Include="Program.fs" />
+  </ItemGroup>
+
+  <ItemGroup>
+    <ProjectReference Include="..\PdfButler.Pdfium\PdfButler.Pdfium.fsproj" />
+  </ItemGroup>
+
+  <ItemGroup>
+    <PackageReference Include="Avalonia" />
+    <PackageReference Include="Avalonia.Desktop" />
+    <PackageReference Include="Avalonia.Themes.Fluent" />
+  </ItemGroup>
+
+  <ItemGroup>
+    <InternalsVisibleTo Include="PdfButler.App.Tests" />
+  </ItemGroup>
+
+</Project>

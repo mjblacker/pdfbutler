@@ -1,0 +1,23 @@
+{
+ "id": "pdfjs/annotation-button-widget",
+ "engine": "pdf.js 6.5.438",
+ "ok": true,
+ "error": null,
+ "numPages": 1,
+ "pages": [
+  {
+   "index": 0,
+   "width": 612,
+   "height": 792,
+   "rotate": 0,
+   "text": "Check box, unchecked\nCheck box, read-only\nCheck box, checked\nRadio buton, selected Radio button, selected\nRadio button, unselected Radio button, unselected\nRadio button, read-only Radio button, read-only",
+   "links": 0,
+   "widgets": 9,
+   "annotations": 9,
+   "error": null
+  }
+ ],
+ "outline": null,
+ "labels": null,
+ "hasForms": false
+}

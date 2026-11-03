@@ -1,0 +1,9 @@
+{
+  "name": "pdfbutler-oracle",
+  "private": true,
+  "description": "Independent pdf.js oracle for the PdfButler test corpus",
+  "type": "module",
+  "dependencies": {
+    "pdfjs-dist": "6.5.438"
+  }
+}

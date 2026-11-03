@@ -1,0 +1,31 @@
+{
+ "id": "verapdf/ua-7.16-t01-pass-a",
+ "engine": "pdf.js 6.5.438",
+ "ok": true,
+ "error": null,
+ "numPages": 1,
+ "pages": [
+  {
+   "index": 0,
+   "width": 612,
+   "height": 792,
+   "rotate": 0,
+   "text": "Security\nThe file is encrypted but does not contain P key in its encryption dictionary",
+   "links": 0,
+   "widgets": 0,
+   "annotations": 0,
+   "error": null
+  }
+ ],
+ "outline": {
+  "top": 3,
+  "total": 3,
+  "titles": [
+   "7.16-1 Security",
+   "10th bit is present",
+   "Expected result: pass"
+  ]
+ },
+ "labels": null,
+ "hasForms": false
+}

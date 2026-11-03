@@ -1,0 +1,23 @@
+{
+ "id": "pdfium/two_signatures",
+ "engine": "pdf.js 6.5.438",
+ "ok": true,
+ "error": null,
+ "numPages": 1,
+ "pages": [
+  {
+   "index": 0,
+   "width": 200,
+   "height": 300,
+   "rotate": 0,
+   "text": "",
+   "links": 0,
+   "widgets": 2,
+   "annotations": 2,
+   "error": null
+  }
+ ],
+ "outline": null,
+ "labels": null,
+ "hasForms": false
+}

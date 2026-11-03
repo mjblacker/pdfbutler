@@ -1,0 +1,23 @@
+{
+ "id": "pdfium/annotation_stamp_with_ap",
+ "engine": "pdf.js 6.5.438",
+ "ok": true,
+ "error": null,
+ "numPages": 1,
+ "pages": [
+  {
+   "index": 0,
+   "width": 595,
+   "height": 842,
+   "rotate": 0,
+   "text": "Adobe Acrobat PDF Files\nAdobe® Portable Document Format (PDF) is a universal file format that preserves all\nof the fonts, formatting, colours and graphics of any source document, regardless of\nthe application and platform used to create it.\nAdobe PDF is an ideal format for electronic document distribution as it overcomes the\nproblems commonly encountered with electronic file sharing.\n• Anyone, anywhere can open a PDF file. All you need is the free Adobe Acrobat\nReader. Recipients of other file formats sometimes can't open files because they\ndon't have the applications used to create the documents.\n• PDF files always print correctly on any printing device.\n• PDF files always display exactly as created, regardless of fonts, software, and\noperating systems. Fonts, and graphics are not lost due to platform, software, and\nversion incompatibilities.\n• The free Acrobat Reader is easy to download and can be freely distributed by\nanyone.\n• Compact PDF files are smaller than their source files and download a\npage at a time for fast display on the Web.",
+   "links": 0,
+   "widgets": 0,
+   "annotations": 2,
+   "error": null
+  }
+ ],
+ "outline": null,
+ "labels": null,
+ "hasForms": false
+}

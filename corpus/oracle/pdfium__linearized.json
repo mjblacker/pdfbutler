@@ -1,0 +1,45 @@
+{
+ "id": "pdfium/linearized",
+ "engine": "pdf.js 6.5.438",
+ "ok": true,
+ "error": null,
+ "numPages": 3,
+ "pages": [
+  {
+   "index": 0,
+   "width": 612,
+   "height": 792,
+   "rotate": 0,
+   "text": "",
+   "links": 0,
+   "widgets": 0,
+   "annotations": 2,
+   "error": null
+  },
+  {
+   "index": 1,
+   "width": 612,
+   "height": 792,
+   "rotate": 0,
+   "text": "",
+   "links": 0,
+   "widgets": 0,
+   "annotations": 4,
+   "error": null
+  },
+  {
+   "index": 2,
+   "width": 612,
+   "height": 792,
+   "rotate": 0,
+   "text": "",
+   "links": 0,
+   "widgets": 0,
+   "annotations": 6,
+   "error": null
+  }
+ ],
+ "outline": null,
+ "labels": null,
+ "hasForms": false
+}

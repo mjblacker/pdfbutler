@@ -1,0 +1,21 @@
+<Project Sdk="Microsoft.NET.Sdk">
+
+  <PropertyGroup>
+    <Description>Pure F# viewer model: geometry, layout, navigation, selection and search. No native code.</Description>
+    <GenerateDocumentationFile>false</GenerateDocumentationFile>
+  </PropertyGroup>
+
+  <ItemGroup>
+    <Compile Include="Types.fs" />
+    <Compile Include="Geometry.fs" />
+    <Compile Include="Layout.fs" />
+    <Compile Include="History.fs" />
+    <Compile Include="TextLayer.fs" />
+    <Compile Include="Password.fs" />
+    <Compile Include="Search.fs" />
+    <Compile Include="LruCache.fs" />
+    <Compile Include="Viewer.fs" />
+    <Compile Include="PageInput.fs" />
+  </ItemGroup>
+
+</Project>

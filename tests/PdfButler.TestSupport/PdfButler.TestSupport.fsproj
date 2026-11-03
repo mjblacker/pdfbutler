@@ -1,0 +1,16 @@
+<Project Sdk="Microsoft.NET.Sdk">
+
+  <PropertyGroup>
+    <Description>Shared test helpers: PNG codec, image diff, synthetic PDFs, corpus manifest.</Description>
+    <IsPackable>false</IsPackable>
+  </PropertyGroup>
+
+  <ItemGroup>
+    <Compile Include="Png.fs" />
+    <Compile Include="ImageCompare.fs" />
+    <Compile Include="SyntheticPdf.fs" />
+    <Compile Include="TextCompare.fs" />
+    <Compile Include="Corpus.fs" />
+  </ItemGroup>
+
+</Project>

@@ -1,0 +1,11 @@
+{
+ "id": "pdfium/trailer_unterminated",
+ "engine": "pdf.js 6.5.438",
+ "ok": false,
+ "error": "InvalidPDFException: Invalid PDF structure.",
+ "numPages": 0,
+ "pages": [],
+ "outline": null,
+ "labels": null,
+ "hasForms": false
+}

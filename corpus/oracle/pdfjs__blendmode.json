@@ -1,0 +1,23 @@
+{
+ "id": "pdfjs/blendmode",
+ "engine": "pdf.js 6.5.438",
+ "ok": true,
+ "error": null,
+ "numPages": 1,
+ "pages": [
+  {
+   "index": 0,
+   "width": 595.28,
+   "height": 841.89,
+   "rotate": 0,
+   "text": "Blend Mode Examples\nNormal\nMultiply\nScreen\nOverlay\nDarken\nLighten\nColorDodge\nColorBurn\nHardLight\nSoftLight\nDifference\nExclusion\nHue\nSaturation\nColor\nLuminosity\nPowered by TCPDF (www.tcpdf.org)",
+   "links": 1,
+   "widgets": 0,
+   "annotations": 1,
+   "error": null
+  }
+ ],
+ "outline": null,
+ "labels": null,
+ "hasForms": false
+}

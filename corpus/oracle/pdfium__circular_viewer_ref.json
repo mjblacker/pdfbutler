@@ -1,0 +1,11 @@
+{
+ "id": "pdfium/circular_viewer_ref",
+ "engine": "pdf.js 6.5.438",
+ "ok": false,
+ "error": "InvalidPDFException: Invalid Root reference.",
+ "numPages": 0,
+ "pages": [],
+ "outline": null,
+ "labels": null,
+ "hasForms": false
+}

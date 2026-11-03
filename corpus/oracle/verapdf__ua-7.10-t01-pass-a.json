@@ -1,0 +1,31 @@
+{
+ "id": "verapdf/ua-7.10-t01-pass-a",
+ "engine": "pdf.js 6.5.438",
+ "ok": true,
+ "error": null,
+ "numPages": 1,
+ "pages": [
+  {
+   "index": 0,
+   "width": 595,
+   "height": 842,
+   "rotate": 0,
+   "text": "Optional Content",
+   "links": 0,
+   "widgets": 0,
+   "annotations": 0,
+   "error": null
+  }
+ ],
+ "outline": {
+  "top": 3,
+  "total": 3,
+  "titles": [
+   "7.10 Optional content",
+   "Name entry is present in D dictionary and it is not empty string",
+   "Expected result: pass"
+  ]
+ },
+ "labels": null,
+ "hasForms": false
+}

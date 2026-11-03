@@ -1,0 +1,23 @@
+{
+ "id": "pdfium/text_form",
+ "engine": "pdf.js 6.5.438",
+ "ok": true,
+ "error": null,
+ "numPages": 1,
+ "pages": [
+  {
+   "index": 0,
+   "width": 300,
+   "height": 300,
+   "rotate": 0,
+   "text": "Test Form",
+   "links": 0,
+   "widgets": 1,
+   "annotations": 1,
+   "error": null
+  }
+ ],
+ "outline": null,
+ "labels": null,
+ "hasForms": false
+}

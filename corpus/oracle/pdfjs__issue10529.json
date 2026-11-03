@@ -1,0 +1,23 @@
+{
+ "id": "pdfjs/issue10529",
+ "engine": "pdf.js 6.5.438",
+ "ok": true,
+ "error": null,
+ "numPages": 1,
+ "pages": [
+  {
+   "index": 0,
+   "width": 595.276,
+   "height": 841.89,
+   "rotate": 0,
+   "text": "OK: ☺\nNG: 😃\nIn the following example, hidden text (not supposed to be copied) is encoded:\n𠁔𠁨𠁩𠁳𠀠𠁩𠁳𠀊𠁮𠁯𠁴𠀉𠁷𠁨𠁡𠁴𠀠𠁉𠀠𠁷𠁡𠁮𠁴𠁥𠁤𠀮",
+   "links": 0,
+   "widgets": 0,
+   "annotations": 0,
+   "error": null
+  }
+ ],
+ "outline": null,
+ "labels": null,
+ "hasForms": false
+}

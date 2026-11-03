@@ -1,0 +1,23 @@
+{
+ "id": "pdfjs/issue6894",
+ "engine": "pdf.js 6.5.438",
+ "ok": true,
+ "error": null,
+ "numPages": 1,
+ "pages": [
+  {
+   "index": 0,
+   "width": 200,
+   "height": 80,
+   "rotate": 0,
+   "text": "Arial Bold\nArial Italic\nArial Regular",
+   "links": 0,
+   "widgets": 0,
+   "annotations": 0,
+   "error": null
+  }
+ ],
+ "outline": null,
+ "labels": null,
+ "hasForms": false
+}

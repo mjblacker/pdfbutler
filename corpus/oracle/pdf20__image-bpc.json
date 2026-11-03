@@ -1,0 +1,23 @@
+{
+ "id": "pdf20/image-bpc",
+ "engine": "pdf.js 6.5.438",
+ "ok": true,
+ "error": null,
+ "numPages": 1,
+ "pages": [
+  {
+   "index": 0,
+   "width": 612,
+   "height": 396,
+   "rotate": 0,
+   "text": "This text is in a Calibrated RGB (CalRGB) colorspace\nThis image is in CalRGB,\nIt should appear red and the black darker than on the right\nThis image is in DeviceRGB,\nIt should appear orange and black",
+   "links": 0,
+   "widgets": 0,
+   "annotations": 0,
+   "error": null
+  }
+ ],
+ "outline": null,
+ "labels": null,
+ "hasForms": false
+}

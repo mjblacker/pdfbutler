@@ -1,0 +1,31 @@
+{
+ "id": "verapdf/ua-7.18.1-t01-pass-a",
+ "engine": "pdf.js 6.5.438",
+ "ok": true,
+ "error": null,
+ "numPages": 1,
+ "pages": [
+  {
+   "index": 0,
+   "width": 612,
+   "height": 792,
+   "rotate": 0,
+   "text": "Link",
+   "links": 1,
+   "widgets": 0,
+   "annotations": 1,
+   "error": null
+  }
+ ],
+ "outline": {
+  "top": 3,
+  "total": 3,
+  "titles": [
+   "7.18.1-2 General",
+   "Link annotation is present in Link structure element instead Annot",
+   "Expected result: pass"
+  ]
+ },
+ "labels": null,
+ "hasForms": false
+}

@@ -1,0 +1,23 @@
+{
+ "id": "pdfjs/annotation-line",
+ "engine": "pdf.js 6.5.438",
+ "ok": true,
+ "error": null,
+ "numPages": 1,
+ "pages": [
+  {
+   "index": 0,
+   "width": 595.32,
+   "height": 841.92,
+   "rotate": 0,
+   "text": "Line",
+   "links": 0,
+   "widgets": 0,
+   "annotations": 2,
+   "error": null
+  }
+ ],
+ "outline": null,
+ "labels": null,
+ "hasForms": false
+}

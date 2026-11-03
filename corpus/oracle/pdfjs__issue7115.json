@@ -1,0 +1,23 @@
+{
+ "id": "pdfjs/issue7115",
+ "engine": "pdf.js 6.5.438",
+ "ok": true,
+ "error": null,
+ "numPages": 1,
+ "pages": [
+  {
+   "index": 0,
+   "width": 200,
+   "height": 50,
+   "rotate": 0,
+   "text": "www.example.com",
+   "links": 1,
+   "widgets": 0,
+   "annotations": 1,
+   "error": null
+  }
+ ],
+ "outline": null,
+ "labels": null,
+ "hasForms": false
+}

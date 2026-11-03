@@ -1,0 +1,25 @@
+{
+ "id": "pdfjs/ArabicCIDTrueType",
+ "engine": "pdf.js 6.5.438",
+ "ok": true,
+ "error": null,
+ "numPages": 1,
+ "pages": [
+  {
+   "index": 0,
+   "width": 595,
+   "height": 842,
+   "rotate": 0,
+   "text": "اﻟﻌﺮﺑﻴﺔ اخلﻄﻮط اﻧﻮاع\nاﻟﻌﺮﺑﻴﺔ اخلﻄﻮط اﻧﻮاع\nاﻟﻌﺮﺑﻴﺔ اخلﻄﻮط اﻧﻮاع\nاﻟﻌﺮﺑﻴﺔ اخلﻄﻮط اﻧﻮاع",
+   "links": 0,
+   "widgets": 0,
+   "annotations": 0,
+   "error": null
+  }
+ ],
+ "outline": null,
+ "labels": [
+  "1"
+ ],
+ "hasForms": false
+}

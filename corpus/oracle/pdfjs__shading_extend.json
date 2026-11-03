@@ -1,0 +1,23 @@
+{
+ "id": "pdfjs/shading_extend",
+ "engine": "pdf.js 6.5.438",
+ "ok": true,
+ "error": null,
+ "numPages": 1,
+ "pages": [
+  {
+   "index": 0,
+   "width": 595.28,
+   "height": 841.89,
+   "rotate": 0,
+   "text": "Test extend for linear shading\nLinear Gradient extend [false false] Linear Gradient extend [true true]\nLinear Gradient extend [true false] Linear Gradient extend [false true]\nPowered by TCPDF (www.tcpdf.org)\npage 1 / 1",
+   "links": 1,
+   "widgets": 0,
+   "annotations": 1,
+   "error": null
+  }
+ ],
+ "outline": null,
+ "labels": null,
+ "hasForms": false
+}

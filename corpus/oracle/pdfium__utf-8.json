@@ -1,0 +1,29 @@
+{
+ "id": "pdfium/utf-8",
+ "engine": "pdf.js 6.5.438",
+ "ok": true,
+ "error": null,
+ "numPages": 1,
+ "pages": [
+  {
+   "index": 0,
+   "width": 525,
+   "height": 250,
+   "rotate": 0,
+   "text": "",
+   "links": 0,
+   "widgets": 0,
+   "annotations": 0,
+   "error": null
+  }
+ ],
+ "outline": {
+  "top": 1,
+  "total": 1,
+  "titles": [
+   "Titlè 1"
+  ]
+ },
+ "labels": null,
+ "hasForms": false
+}

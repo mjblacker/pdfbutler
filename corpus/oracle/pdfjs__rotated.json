@@ -1,0 +1,29 @@
+{
+ "id": "pdfjs/rotated",
+ "engine": "pdf.js 6.5.438",
+ "ok": true,
+ "error": null,
+ "numPages": 1,
+ "pages": [
+  {
+   "index": 0,
+   "width": 612,
+   "height": 792,
+   "rotate": 0,
+   "text": "Rotated text\nPage 1\ntest\ntest\nt\ne\ns\nt\ntest",
+   "links": 0,
+   "widgets": 0,
+   "annotations": 0,
+   "error": null
+  }
+ ],
+ "outline": {
+  "top": 1,
+  "total": 1,
+  "titles": [
+   "Rotated text"
+  ]
+ },
+ "labels": null,
+ "hasForms": false
+}

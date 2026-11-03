@@ -1,0 +1,23 @@
+{
+ "id": "pdfjs/mixedfonts",
+ "engine": "pdf.js 6.5.438",
+ "ok": true,
+ "error": null,
+ "numPages": 1,
+ "pages": [
+  {
+   "index": 0,
+   "width": 595.28,
+   "height": 841.89,
+   "rotate": 0,
+   "text": "Font Types\nOriginal Example From: http://www.tcpdf.org/examples/example_033.php\n[Core font] : abcdefghijklmnopqrstuvwxyzABCDEFG\nHIJKLMNOPQRSTUVWXYZ0123456789\n[True Type Unicode font] : abcdefghijklmno\npqrstuvwxyzABCDEFGHIJKLMNOPQRSTUVW\nXYZ0123456789\n[CID-0 font] : abcdefghijklmnopqrstuvwxyzABCDEFGHI\nJKLMNOPQRSTUVWXYZ0123456789\nPowered by TCPDF (www.tcpdf.org)\npage 1 / 1",
+   "links": 1,
+   "widgets": 0,
+   "annotations": 1,
+   "error": null
+  }
+ ],
+ "outline": null,
+ "labels": null,
+ "hasForms": false
+}

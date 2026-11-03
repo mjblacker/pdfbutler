@@ -1,0 +1,23 @@
+{
+ "id": "pdfjs/annotation-text-widget",
+ "engine": "pdf.js 6.5.438",
+ "ok": true,
+ "error": null,
+ "numPages": 1,
+ "pages": [
+  {
+   "index": 0,
+   "width": 612,
+   "height": 792,
+   "rotate": 0,
+   "text": "Single line, unlimited length\nSingle line, length 10\nSingle line, center aligned\nSingle line, right aligned\nSingle line, read-only\nSingle line, combs\nMultiline",
+   "links": 0,
+   "widgets": 7,
+   "annotations": 7,
+   "error": null
+  }
+ ],
+ "outline": null,
+ "labels": null,
+ "hasForms": false
+}

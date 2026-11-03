@@ -1,0 +1,108 @@
+{
+ "id": "pdfium/page_labels",
+ "engine": "pdf.js 6.5.438",
+ "ok": true,
+ "error": null,
+ "numPages": 7,
+ "pages": [
+  {
+   "index": 0,
+   "width": 612,
+   "height": 792,
+   "rotate": 0,
+   "text": "",
+   "links": 0,
+   "widgets": 0,
+   "annotations": 0,
+   "error": null
+  },
+  {
+   "index": 1,
+   "width": 612,
+   "height": 792,
+   "rotate": 0,
+   "text": "",
+   "links": 0,
+   "widgets": 0,
+   "annotations": 0,
+   "error": null
+  },
+  {
+   "index": 2,
+   "width": 612,
+   "height": 792,
+   "rotate": 0,
+   "text": "",
+   "links": 0,
+   "widgets": 0,
+   "annotations": 0,
+   "error": null
+  },
+  {
+   "index": 3,
+   "width": 612,
+   "height": 792,
+   "rotate": 0,
+   "text": "",
+   "links": 0,
+   "widgets": 0,
+   "annotations": 0,
+   "error": null
+  },
+  {
+   "index": 4,
+   "width": 612,
+   "height": 792,
+   "rotate": 0,
+   "text": "",
+   "links": 0,
+   "widgets": 0,
+   "annotations": 0,
+   "error": null
+  },
+  {
+   "index": 5,
+   "width": 612,
+   "height": 792,
+   "rotate": 0,
+   "text": "",
+   "links": 0,
+   "widgets": 0,
+   "annotations": 0,
+   "error": null
+  },
+  {
+   "index": 6,
+   "width": 612,
+   "height": 792,
+   "rotate": 0,
+   "text": "",
+   "links": 0,
+   "widgets": 0,
+   "annotations": 0,
+   "error": null
+  }
+ ],
+ "outline": {
+  "top": 6,
+  "total": 6,
+  "titles": [
+   "Blank Page",
+   "Blank Page",
+   "Blank Page",
+   "Blank Page",
+   "Blank Page",
+   "Blank Page"
+  ]
+ },
+ "labels": [
+  "i",
+  "ii",
+  "1",
+  "2",
+  "zzA",
+  "zzB",
+  ""
+ ],
+ "hasForms": false
+}

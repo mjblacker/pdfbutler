@@ -1,0 +1,23 @@
+{
+ "id": "pdfjs/bug1552113",
+ "engine": "pdf.js 6.5.438",
+ "ok": true,
+ "error": null,
+ "numPages": 1,
+ "pages": [
+  {
+   "index": 0,
+   "width": 250,
+   "height": 50,
+   "rotate": 0,
+   "text": "http://www.example.org/\nBug 1552113 - this text should be visible.",
+   "links": 1,
+   "widgets": 0,
+   "annotations": 1,
+   "error": null
+  }
+ ],
+ "outline": null,
+ "labels": null,
+ "hasForms": false
+}

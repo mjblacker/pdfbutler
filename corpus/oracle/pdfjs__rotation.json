@@ -1,0 +1,37 @@
+{
+ "id": "pdfjs/rotation",
+ "engine": "pdf.js 6.5.438",
+ "ok": true,
+ "error": null,
+ "numPages": 2,
+ "pages": [
+  {
+   "index": 0,
+   "width": 612,
+   "height": 792,
+   "rotate": 0,
+   "text": "This is my first page with normal layout.\nThis is the second line on the page.",
+   "links": 0,
+   "widgets": 0,
+   "annotations": 0,
+   "error": null
+  },
+  {
+   "index": 1,
+   "width": 792,
+   "height": 612,
+   "rotate": 90,
+   "text": "This is my second page. It will have a landscape layout.\nSecond line here.",
+   "links": 0,
+   "widgets": 0,
+   "annotations": 0,
+   "error": null
+  }
+ ],
+ "outline": null,
+ "labels": [
+  "1",
+  "2"
+ ],
+ "hasForms": false
+}
