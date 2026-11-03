@@ -14,6 +14,6 @@ Optional `--assets <project.assets.json>` and `--output <directory>` arguments s
 `avalonia.txt`, `fsharp.txt`, `microcom.txt` and `tmds-dbus.txt` supply texts for packages which declare a license but do not bundle it.
 Their source URLs are in `THIRD_PARTY_NOTICES.md`.
 
-For optional self-contained publishes (`-p:SelfContained=true`), the publish target copies the resolved
-.NET runtime's `LICENSE.TXT` and `THIRD-PARTY-NOTICES.TXT` to `licenses/dotnet/`.
-Default framework-dependent beta packages do not redistribute the runtime.
+The deployment profiles are Native AOT, so the .NET runtime is compiled into the executable. The publish target copies
+the resolved runtime pack's `LICENSE.TXT` and `THIRD-PARTY-NOTICES.TXT` to `licenses/dotnet/` (for any self-contained publish).
+A framework-dependent publish (`-p:PublishAot=false -p:SelfContained=false`) does not redistribute the runtime and omits them.

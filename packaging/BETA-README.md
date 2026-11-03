@@ -2,13 +2,9 @@
 
 ## Before running
 
-Install the **.NET 10 x64 Runtime** from:
-https://dotnet.microsoft.com/en-us/download/dotnet/10.0
-
-You need the regular **.NET Runtime**, not the SDK or ASP.NET Core. On Linux, use your
-distro's .NET instructions to install `dotnet-runtime-10.0` and Avalonia's X11/font/GL
-dependencies. `dotnet --list-runtimes` should show `Microsoft.NETCore.App 10.0.x` for x64.
-Skip this prerequisite only if the developer specifically supplied a self-contained build.
+Nothing to install on Windows: the app includes everything it needs (no .NET runtime required).
+On Linux, the usual desktop libraries for X11, fonts, OpenGL and ICU must be present. Most desktop
+installations already have them.
 
 ## Run
 

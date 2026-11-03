@@ -113,4 +113,7 @@ Mutation check: deliberately breaking `Geometry.displayToView` for R90 makes the
   use `TopLevel.GetTopLevel(visual)`; `TextBox.PlaceholderText`; no `Avalonia.Diagnostics`; explicit `UseSkia` needs `UseHarfBuzz`.
 - UI is built in code, with no XAML and no reflection bindings. View state transitions go through `Viewer.update` (pure, tested).
 - Keep pure logic in Core with tests. The App should only wire effects.
+- Releases are **Native AOT** (`dotnet publish -p:PublishProfile=win-x64|linux-x64`). No reflection-based `JsonSerializer`: it throws under AOT.
+  Use `Utf8JsonWriter`/`JsonDocument`. Avoid `printf`/`sprintf`/`%A`, and use the generic `Marshal` overloads. The profiles make IL2026/IL3050 build errors.
+  Ordinary build/test runs JIT, so AOT-only failures show up only in a published build: smoke-test it with `--measure`. See `docs/DEPLOYMENT.md`.
 - Don't commit `corpus/cache/`, `artifacts/`, or derived data of `web/` (non-redistributable) documents.

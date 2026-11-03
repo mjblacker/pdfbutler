@@ -3,8 +3,13 @@
   <Target Name="ValidateDeploymentDestination" BeforeTargets="PrepareForPublish" Condition="'$(PdfButlerDeployment)' == 'true'">
     <Error Condition="'$(RuntimeIdentifier)' != 'win-x64' and '$(RuntimeIdentifier)' != 'linux-x64'"
            Text="Deployment supports only win-x64 and linux-x64." />
-    <Error Condition="'$(PublishTrimmed)' == 'true'"
-           Text="Deployment must be untrimmed; trimming has not been validated." />
+    <!-- Native AOT always trims; trimming a JIT build has not been validated. -->
+    <Error Condition="'$(PublishTrimmed)' == 'true' and '$(PublishAot)' != 'true'"
+           Text="A non-AOT deployment must be untrimmed; trimming without Native AOT has not been validated." />
+    <Error Condition="'$(PublishAot)' == 'true' and '$(SelfContained)' != 'true'"
+           Text="Native AOT deployment is always self-contained; do not set SelfContained=false with PublishAot." />
+    <Error Condition="'$(PublishAot)' == 'true' and ('$(PublishSingleFile)' == 'true' or '$(PublishReadyToRun)' == 'true')"
+           Text="Native AOT already produces one native executable; PublishSingleFile and PublishReadyToRun do not apply." />
     <Error Condition="'$(IncludeNativeLibrariesForSelfExtract)' == 'true' or '$(IncludeAllContentForSelfExtract)' == 'true'"
            Text="Native libraries must remain beside the executable; self-extraction is not supported." />
     <Error Condition="'$(PublishDir)' == ''" Text="A deployment output directory is required." />

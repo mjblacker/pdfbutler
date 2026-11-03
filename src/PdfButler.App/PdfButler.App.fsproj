@@ -6,7 +6,7 @@
     <RootNamespace>PdfButler.App</RootNamespace>
     <ApplicationManifest>app.manifest</ApplicationManifest>
     <ApplicationIcon>../../assets/pdfbutler.ico</ApplicationIcon>
-    <!-- Ordinary builds stay managed/JIT; folder publish profiles opt into ReadyToRun (not AOT). -->
+    <!-- Ordinary builds stay managed/JIT; the folder publish profiles use Native AOT. -->
     <TieredPGO>true</TieredPGO>
     <InvariantGlobalization>false</InvariantGlobalization>
   </PropertyGroup>

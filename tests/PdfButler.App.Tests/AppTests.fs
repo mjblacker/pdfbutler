@@ -50,6 +50,37 @@ let ``window placement fits disconnected monitors and changed DPI`` () =
     Assert.Equal(-1800, left.X)
     Assert.Equal(40, left.Y)
 
+[<Fact>]
+let ``window placement JSON round-trips and reads files written by the earlier serializer`` () =
+    let p: WindowPlacement.Placement = { X = -1800; Y = 40; Width = 1180.5; Height = 850.0; Maximized = true }
+    Assert.Equal(Some p, WindowPlacement.parse (WindowPlacement.serialize p))
+    // Format previously produced by JsonSerializer.Serialize.
+    let earlier = """{"X":12,"Y":-3,"Width":1180,"Height":850.25,"Maximized":false}"""
+    Assert.Equal(Some ({ X = 12; Y = -3; Width = 1180.0; Height = 850.25; Maximized = false }: WindowPlacement.Placement), WindowPlacement.parse earlier)
+    Assert.Equal(Some ({ X = 0; Y = 0; Width = 0.0; Height = 0.0; Maximized = false }: WindowPlacement.Placement), WindowPlacement.parse "{}")
+    for bad in [ ""; "not json"; "[]"; "null"; """{"X":"1"}"""; """{"X":1.5}"""; """{"Maximized":1}""" ] do
+        Assert.Equal(None, WindowPlacement.parse bad)
+
+[<Fact>]
+let ``activation messages round-trip and reject anything but an array of strings`` () =
+    let files = [| @"C:\a file with spaces.pdf"; "/home/u/日本語 \"quoted\".pdf" |]
+    Assert.Equal<string[]>(files, (SingleInstance.decodeFiles (SingleInstance.encodeFiles files)).Value)
+    Assert.Equal<string[]>([||], (SingleInstance.decodeFiles (SingleInstance.encodeFiles [||])).Value)
+    for bad in [ "null"; "{}"; "\"a.pdf\""; """["a.pdf", null]"""; """["a.pdf", 1]"""; "[" ; "" ] do
+        Assert.True((SingleInstance.decodeFiles (Text.Encoding.UTF8.GetBytes(bad: string))).IsNone, bad)
+
+[<Fact>]
+let ``measure snapshot is valid JSON with typed values`` () =
+    let json = Diagnostics.snapshotJson [ "file", Operators.box "a \"b\".pdf"; "exitCode", Operators.box 2; "bytes", Operators.box 5L; "mb", Operators.box 1.5; "ok", Operators.box true ]
+    use doc = Text.Json.JsonDocument.Parse(json: string)
+    let root = doc.RootElement
+    Assert.Equal("a \"b\".pdf", root.GetProperty("file").GetString())
+    Assert.Equal(2, root.GetProperty("exitCode").GetInt32())
+    Assert.Equal(5L, root.GetProperty("bytes").GetInt64())
+    Assert.Equal(1.5, root.GetProperty("mb").GetDouble())
+    Assert.True(root.GetProperty("ok").GetBoolean())
+    Assert.True(root.GetProperty("workingSetMB").GetDouble() > 0.0)
+
 [<AvaloniaFact>]
 let ``window close can cancel close current or close all without duplicate prompts`` () =
     let w, _ = newWindow ()

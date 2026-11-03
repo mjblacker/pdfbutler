@@ -74,7 +74,7 @@ module internal FileAccessCallback =
 
     // Rooted for the lifetime of the process: PDFium keeps the function pointer.
     let delegateInstance = Native.GetBlockDelegate(fun p pos buf size -> read p pos buf size)
-    let pointer = Marshal.GetFunctionPointerForDelegate delegateInstance
+    let pointer = Marshal.GetFunctionPointerForDelegate<Native.GetBlockDelegate> delegateInstance
 
 type internal LoadedPage =
     { Handle: nativeint
@@ -493,7 +493,7 @@ type PdfEngine private () =
                     fa.m_GetBlock <- FileAccessCallback.pointer
                     fa.m_Param <- GCHandle.ToIntPtr gch
                     let access = Marshal.AllocHGlobal(Marshal.SizeOf<Native.FPDF_FILEACCESS>())
-                    Marshal.StructureToPtr(fa, access, false)
+                    Marshal.StructureToPtr<Native.FPDF_FILEACCESS>(fa, access, false)
 
                     let tryOpen (bytes: byte[]) = Native.FPDF_LoadCustomDocument(access, bytes)
                     let zstr (enc: Encoding) (s: string) = Array.append (enc.GetBytes s) [| 0uy |]

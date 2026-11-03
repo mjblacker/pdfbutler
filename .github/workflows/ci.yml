@@ -29,6 +29,8 @@ jobs:
         run: |
           sudo apt-get update
           sudo apt-get install -y libfontconfig1 libx11-6 libice6 libsm6 libglib2.0-0t64 libgl1 fonts-liberation fonts-dejavu-core
+          # Native AOT publishing: compiler/linker and zlib headers.
+          sudo apt-get install -y clang zlib1g-dev
       - uses: actions/cache@v4
         with:
           path: corpus/cache
@@ -39,8 +41,14 @@ jobs:
       - name: Fetch and verify pinned core corpus (never extended/private files)
         run: dotnet run --project tools/PdfButler.Corpus -- fetch
       - run: dotnet test PdfButler.slnx --configuration Release --logger "trx;LogFileName=tests.trx" --results-directory artifacts/test-results
-      - name: Publish private deployment folder
+      - name: Publish private deployment folder (Native AOT)
         run: dotnet publish src/PdfButler.App -p:PublishProfile=${{ matrix.rid }}
+      - name: Smoke-test the AOT executable (Windows; Linux runners have no display)
+        if: runner.os == 'Windows'
+        shell: pwsh
+        run: |
+          & artifacts/publish/win-x64/PdfButler.exe --measure corpus/cache/pdfjs/test/pdfs/tracemonkey.pdf | Out-String | Write-Output
+          if ($LASTEXITCODE -ne 0) { throw "--measure exited with $LASTEXITCODE" }
       - name: Test results only (no document images or extracted text)
         if: always()
         uses: actions/upload-artifact@v4

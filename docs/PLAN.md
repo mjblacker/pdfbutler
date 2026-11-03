@@ -46,8 +46,20 @@ Tests: **61 core + 167 engine (129 corpus documents + 1 extended) + 52 app/IPC/l
   Linux uses the same process/pipe implementation but has not yet been run. See [`RENDERER.md`](RENDERER.md).
 - Historical startup/memory figures below predate this change. `--measure` now reports renderer memory
   separately from UI memory; remeasure total memory and startup before making new performance claims.
-- Both ReadyToRun targets publish successfully. The Windows folder passes a `--measure`
-  first-page smoke test; Linux cross-publishing is not Linux runtime verification.
+- Publishing has since moved to Native AOT (below). The Windows AOT folder passes a `--measure` first-page smoke test;
+  the Linux AOT folder must be published on Linux and has not been built or run yet.
+
+### Native AOT publishing (2026-11-03)
+
+- Both publish profiles are now **Native AOT**: one self-contained native executable plus the native libraries, so **testers install no .NET runtime**.
+  Ordinary build/run/test stays JIT. Windows publishing needs the MSVC "Desktop development with C++" workload; Linux needs clang and zlib1g-dev, on Linux.
+- Fixed everything AOT flagged in our code: reflection-based `JsonSerializer` in window placement, single-instance forwarding and `--measure`
+  (it threw at runtime under AOT, so `--measure` crashed) is now hand-written `Utf8JsonWriter`/`JsonDocument`, with unchanged file/wire formats
+  and new round-trip/malformed-input tests. The PDFium read callback uses the generic `Marshal` overloads. `eprintfn` was removed.
+- `IL2026`/`IL3050` are build errors in the profiles, so new AOT-unsafe code stops the publish (checked: they fire as errors).
+  FSharp.Core still reports its own `IL2104`/`IL3053` summary warnings (internal printf/reflection code).
+- `Deployment.targets` rejects AOT combined with `SelfContained=false`, single-file or ReadyToRun, and trimming without AOT.
+  `-p:PublishAot=false` still produces a JIT folder for comparison.
 
 ### Previous increment: tabs, branding and deployment
 
@@ -60,8 +72,8 @@ Tests: **61 core + 167 engine (129 corpus documents + 1 extended) + 52 app/IPC/l
 - Visible **Back / Forward** history buttons, plus the existing Alt+Left / Alt+Right shortcuts.
 - Windows single-instance activation: subsequent launches forward absolute file paths through a bounded, current-user-only named pipe.
   `--measure` bypasses this so each measurement is a fresh process. Linux currently opens separate instances.
-- Release/framework-dependent/ReadyToRun **publish profiles** for win-x64 and linux-x64: managed DLLs bundled into the executable,
-  native libraries beside it, dependency notices included and debug symbols excluded. Testers install the .NET 10 x64 Runtime.
+- Release **publish profiles** for win-x64 and linux-x64 (originally framework-dependent ReadyToRun, now Native AOT, see above):
+  native libraries beside the executable, dependency notices included and debug symbols excluded.
   Standard outputs are cleaned automatically; custom directories require explicit cleanup opt-in. Successful publishes create a sibling `.zip`.
 - Per-user Windows install/register/unregister scripts with `-WhatIf`. Registration adds Open with / Default Apps eligibility and an optional
   classic PDF context-menu verb. It **never changes the default PDF app** or touches Windows' protected UserChoice key.
@@ -167,9 +179,23 @@ one discarded warm-up per document, warm filesystem cache. Modes ran sequentiall
 | PDF 2.0 UTF-8 test | 579.2 / 592.5 ms | 1153.4 / 1196.8 ms | 128.0 / 132.4 ms | 150.2 MiB |
 | PDF 2.0 image with BPC | 561.2 / 581.8 ms | 1143.6 / 1163.7 ms | 112.3 / 121.0 ms | 139.8 MiB |
 
-**Decision: keep ReadyToRun enabled for folder publishing.** It roughly halves launch time here and meets the original startup/memory targets.
-Ordinary edit/run builds stay JIT; NativeAOT is deferred, not needed to meet the current targets.
+Decision at the time: ReadyToRun for folder publishing. Superseded by the AOT measurements below.
 Raw samples are local/ignored: `artifacts/startup-r2r.json` and `startup-jit.json`. Reproduce with `tools/Measure-Startup.fsx` (see deployment guide).
+
+### Native AOT vs ReadyToRun, with renderer helpers (2026-11-03)
+
+Same machine and method as above (20 fresh processes per document after one discarded warm-up, nearest-rank percentiles),
+now with one renderer helper process per document. ReadyToRun here is the previous framework-dependent single-file profile, built from the same code.
+
+| Document | AOT launch p50 / p95 | R2R launch p50 / p95 | AOT open p50 / p95 | R2R open p50 / p95 | AOT UI / renderer WS p95 | R2R UI / renderer WS p95 |
+|---|---|---|---|---|---|---|
+| pdf.js tracemonkey (14 pages) | 190.3 / 208.3 ms | 624.1 / 637.5 ms | 90.6 / 109.4 ms | 181.1 / 187.3 ms | 119.9 / 42.5 MiB | 157.1 / 40.8 MiB |
+| PDF 2.0 UTF-8 test | 178.1 / 193.1 ms | 608.2 / 624.4 ms | 78.5 / 93.7 ms | 163.3 / 174.5 ms | 107.7 / 21.9 MiB | 144.6 / 37.3 MiB |
+| PDF 2.0 image with BPC | 180.2 / 199.6 ms | 611.6 / 633.1 ms | 81.6 / 100.2 ms | 168.2 / 178.7 ms | 106.4 / 24.1 MiB | 143.2 / 39.3 MiB |
+
+**Decision: Native AOT for folder publishing.** Launch-to-first-page is about 3.3× faster, opening about 2× faster (the helper starts without JIT too),
+and the UI process uses about 37 MiB less. Testers no longer install .NET. Costs: about 48 MB deployment folder (20 MB zipped),
+a native toolchain to publish, and Linux builds made on Linux. Raw samples: `artifacts/startup-aot.json`, `startup-r2r-renderer.json` (ignored).
 SumatraPDF wasn't found in the usual installation folders, so the independent viewer comparison remains outstanding.
 This is not a cold-disk, high-DPI or hostile-document performance claim.
 
@@ -183,7 +209,8 @@ This is not a cold-disk, high-DPI or hostile-document performance claim.
 ### Next
 
 - Performance follow-up: compare with SumatraPDF when installed; measure warm second-tab opens and cold-disk/DPI cases.
-  The ≥20-run, three-document JIT/ReadyToRun comparison is complete above; ReadyToRun is the publishing default.
+  The ≥20-run, three-document JIT/ReadyToRun/AOT comparisons are complete above; Native AOT is the publishing default.
+- Linux AOT: publish on the oldest supported distro (glibc baseline) and run the `--measure` smoke test there.
 - Linux: run the full suite on one named distro (glibc x64). Expect a few golden differences from fonts. Add per-platform baselines only with a reason.
 - CI: review the first GitHub Actions Windows/Ubuntu 24.04 run; investigate rather than suppress any Linux golden differences.
 - Notices: Windows/Linux pinned PDFium archives' notice texts match (line endings aside). Review application licensing before public redistribution.

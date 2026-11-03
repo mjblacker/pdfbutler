@@ -17,6 +17,27 @@ let private identity =
     let user = Environment.UserDomainName + "\\" + Environment.UserName
     Convert.ToHexString(SHA256.HashData(Encoding.UTF8.GetBytes user)).Substring(0, 24)
 
+/// The pipe message: a JSON array of strings. Hand-written because Native AOT disables
+/// reflection-based JsonSerializer.
+let internal encodeFiles (files: string[]) =
+    use stream = new MemoryStream()
+    (use w = new Utf8JsonWriter(stream)
+     w.WriteStartArray()
+     for f in files do w.WriteStringValue f
+     w.WriteEndArray())
+    stream.ToArray()
+
+/// None unless the message is a JSON array whose items are all strings.
+let internal decodeFiles (bytes: byte[]) : string[] option =
+    try
+        use doc = JsonDocument.Parse(ReadOnlyMemory bytes)
+        let root = doc.RootElement
+        if root.ValueKind <> JsonValueKind.Array then None
+        else
+            let items = [| for e in root.EnumerateArray() -> if e.ValueKind = JsonValueKind.String then e.GetString() else null |]
+            if items |> Array.exists isNull then None else Some items
+    with :? JsonException -> None
+
 type Instance(?name: string) =
     let name = defaultArg name ("PdfButler." + identity)
     let mutex = new Mutex(false, "Local\\" + name)
@@ -41,15 +62,15 @@ type Instance(?name: string) =
                     if length > 0 && length <= maxMessageBytes then
                         let bytes = Array.zeroCreate<byte> length
                         do! server.ReadExactlyAsync(bytes.AsMemory(), timeout.Token).AsTask()
-                        let files = JsonSerializer.Deserialize<string[]>(bytes)
-                        if not (isNull files) && files.Length <= 10
-                           && files |> Array.forall (fun p -> not (String.IsNullOrWhiteSpace p) && p.Length <= 32767 && Path.IsPathFullyQualified p) then
+                        match decodeFiles bytes with
+                        | Some files when files.Length <= 10
+                                          && files |> Array.forall (fun p -> not (String.IsNullOrWhiteSpace p) && p.Length <= 32767 && Path.IsPathFullyQualified p) ->
                             pending.Enqueue files
                             received.Trigger()
+                        | _ -> ()
                 with
                 | :? OperationCanceledException -> ()
                 | :? IOException -> ()
-                | :? JsonException -> ()
         }
 
     do if ownsMutex then listen () |> ignore
@@ -64,7 +85,7 @@ type Instance(?name: string) =
     member _.ForwardAsync(files: string[]) : Task<bool> =
         task {
             try
-                let bytes = JsonSerializer.SerializeToUtf8Bytes files
+                let bytes = encodeFiles files
                 if bytes.Length > maxMessageBytes then return false
                 else
                     use client = new NamedPipeClientStream(".", name, PipeDirection.Out,

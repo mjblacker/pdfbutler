@@ -5,7 +5,7 @@ A fast, minimal PDF reader for Windows and Linux, built on .NET 10.
 PdfButler does one job: open PDFs quickly and let you read them. It has no account, no cloud features, no AI and no editor.
 It opens the file read-only, never changes it, never runs document JavaScript and never goes online on a document's behalf.
 
-- **Fast.** First page on screen in about 0.6 s from launch and about 125 ms after opening (published ReadyToRun build, Windows 10).
+- **Fast.** First page on screen in about 0.2 s from launch and under 100 ms after opening (published Native AOT build, Windows 10).
 - **Multiplatform.** F# on .NET 10 with an [Avalonia](https://avaloniaui.net/) UI. Windows is tested. Linux builds, but hasn't been fully tested yet.
 - **Reliable rendering.** Uses [PDFium](https://pdfium.googlesource.com/pdfium/), the engine in Chrome. Each PDF opens in its own
   helper process, so a document that crashes the engine only closes its own tab.
@@ -57,7 +57,8 @@ The corpus tests need the test documents downloaded first:
 dotnet run --project tools/PdfButler.Corpus -- fetch
 ```
 
-To build a deployable folder and ZIP (testers need the .NET 10 Runtime):
+To build a deployable Native AOT folder and ZIP (testers install nothing; publishing needs the MSVC C++ workload on Windows,
+or clang and zlib1g-dev on Linux, and the Linux folder must be published on Linux):
 
 ```text
 dotnet publish src/PdfButler.App -p:PublishProfile=win-x64

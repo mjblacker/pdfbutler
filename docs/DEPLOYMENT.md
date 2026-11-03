@@ -9,36 +9,48 @@ dotnet build PdfButler.slnx
 dotnet test PdfButler.slnx
 dotnet publish src/PdfButler.App -p:PublishProfile=win-x64
 # Output: artifacts/publish/win-x64 plus artifacts/publish/win-x64.zip.
-# Alternative output / JIT comparison:
-dotnet publish src/PdfButler.App -p:PublishProfile=win-x64 -o artifacts/publish/win-x64-jit -p:PublishReadyToRun=false
-# Linux glibc x64 (build/test on Linux before distributing):
+# Self-contained JIT build (no AOT), for comparison or diagnostics:
+dotnet publish src/PdfButler.App -p:PublishProfile=win-x64 -o artifacts/publish/win-x64-jit -p:PublishAot=false
+# The previous framework-dependent ReadyToRun build, if ever needed again:
+dotnet publish src/PdfButler.App -p:PublishProfile=win-x64 -o artifacts/publish/win-x64-r2r -p:PublishAot=false -p:SelfContained=false -p:PublishSingleFile=true -p:PublishReadyToRun=true
+# Linux glibc x64 (must be published on Linux; see prerequisites):
 dotnet publish src/PdfButler.App -p:PublishProfile=linux-x64
 # Clean a custom output directory too (deletes its entire contents):
 dotnet publish src/PdfButler.App -p:PublishProfile=win-x64 -o artifacts/publish/custom -p:CleanPublishDirectory=true
 ```
 
-Building and publishing need only the .NET SDK, not PowerShell, FAKE or a platform-specific shell.
+Building needs only the .NET SDK, not PowerShell, FAKE or a platform-specific shell. The publish profiles also need
+a native toolchain, because they use **Native AOT**:
+
+- **Windows:** Visual Studio 2022 (or Build Tools) with the **Desktop development with C++** workload (MSVC linker and Windows SDK).
+- **Linux:** `clang` and `zlib1g-dev` (Debian/Ubuntu names). AOT cannot cross-compile between operating systems, so publish the
+  Linux folder on Linux. The executable needs the build machine's glibc version or newer: publish on the oldest distro you support.
+
 These commands work from the repository root on Windows and Linux; quote paths containing spaces.
 Both profiles are also available in IDE publishing. Default profile destinations are anchored to the repository;
 an explicit `-o` path is relative to your current directory, as with ordinary `dotnet publish`.
-Profiles are Release, **framework-dependent**, ReadyToRun and untrimmed. Testers must install the
-**.NET 10 x64 Runtime** first (the SDK, ASP.NET Core and Windows Desktop runtime are not required).
-Download it from [Microsoft's .NET 10 downloads](https://dotnet.microsoft.com/en-us/download/dotnet/10.0);
-on Linux use the distro's .NET installation instructions for the `dotnet-runtime-10.0` package.
-`dotnet --list-runtimes` should include `Microsoft.NETCore.App 10.0.x` for x64.
+Profiles are Release, **Native AOT** and therefore self-contained and trimmed. **Testers install nothing**: there is no .NET runtime prerequisite.
+Ordinary `dotnet build`/`dotnet run` builds stay JIT; only publishing compiles ahead of time (about 30-40 s on the dev machine).
 
-The managed app and its managed dependencies are bundled into `PdfButler.exe` (`PdfButler` on Linux).
-PDFium, Skia, HarfBuzz and platform-native libraries remain alongside it; they are needed, not spare DLLs.
-This avoids temporary extraction and keeps the per-document renderer working from the same executable.
-**Extract and deploy the whole ZIP/folder**, not just the executable. Keep `licenses/` and notices intact.
-The ZIP includes a short tester-facing `README.md` with prerequisites, launch and update instructions.
+`PdfButler.exe` (`PdfButler` on Linux) is one native executable containing the app, its .NET dependencies and the runtime.
+PDFium, Skia, HarfBuzz and ANGLE remain alongside it as native libraries; they are needed, not spare DLLs.
+The per-document renderer helper is the same executable. **Extract and deploy the whole ZIP/folder**, not just the executable.
+Keep `licenses/` and notices intact (`licenses/dotnet/` holds the .NET runtime's license, now that the runtime ships inside the app).
+The ZIP includes a short tester-facing `README.md` with launch and update instructions.
+The Windows folder is about 48 MB (20 MB zipped). The ReadyToRun build it replaced needed a separately installed runtime.
 
-The previous self-contained output included the full .NET runtime, including Visual Basic compatibility
-assemblies even though the app is F#. Requiring the runtime separately removes those assemblies rather
-than guessing which runtime DLLs can be deleted. Trimming is still disabled: Avalonia/F# reflection paths
-need separate validation before trimming is safe. Bundling reduces file clutter; the ZIP compresses transfers.
-Use `-p:PublishSingleFile=false` for a diagnostic loose-file build, or `-p:SelfContained=true` if a tester
-cannot install .NET (larger, but still bundled). No manual DLL pruning is used.
+AOT rules for the code:
+
+- No reflection-based `JsonSerializer`: under AOT it throws at runtime. Use `Utf8JsonWriter`/`JsonDocument` as in
+  `Core/Settings.fs`, `WindowPlacement.fs`, `SingleInstance.fs` and `Diagnostics.fs`. F# cannot run the System.Text.Json source generator.
+- Use the generic `Marshal` overloads (`GetFunctionPointerForDelegate<T>`, `StructureToPtr<T>`).
+- Avoid `printf`-family formatting (`sprintf`, `%A`, `failwithf`) in the app. Use interpolated strings without format specifiers, or `String.Format`.
+- The profiles turn `IL2026` and `IL3050` (reflection or runtime code generation the compiler can't prove safe) into **build errors**, so these regressions
+  stop the publish. The remaining `IL2104`/`IL3053` warnings summarise FSharp.Core's own printf/reflection code;
+  FSharp.Core can't be fixed from here. Run with `-p:TrimmerSingleWarn=false` to see the details.
+
+`tools/Deployment.targets` rejects option combinations that don't apply: `SelfContained=false`, `PublishSingleFile` or `PublishReadyToRun`
+together with AOT, and trimming without AOT (not validated). No manual DLL pruning is used.
 
 Every successful profile publish also creates/replaces a **sibling ZIP**, including for a custom `-o` path:
 `-o artifacts/publish/custom` produces `artifacts/publish/custom.zip`. ZIP entries are the folder contents,
@@ -46,9 +58,8 @@ without an extra enclosing directory, so extract into a new dedicated folder. Th
 the native-library check, then moved into place after compression completes. Failed publishing does not
 replace the last good ZIP. Use `-p:CreatePublishArchive=false` to skip ZIP creation (an older ZIP, if any,
 is left unchanged; do not mistake it for a new build).
-ReadyToRun is a reversible publishing option, not a NativeAOT commitment. In 20-launch tests per document across three PDFs,
-it reduced median launch-to-first-page from 1.14–1.16 s (JIT) to 0.56–0.58 s on the Windows dev machine; details are in `PLAN.md`.
-Those measurements predate per-document renderer processes and must be repeated for this architecture.
+In 20-launch tests per document across three PDFs with per-document renderer helpers, Native AOT reduced median launch-to-first-page
+from 608-624 ms (framework-dependent ReadyToRun) to 178-190 ms on the Windows dev machine, and UI working set by about 37 MiB; details are in `PLAN.md`.
 The profiles import MSBuild deployment checks (`tools/Deployment.targets`), including a check that PDFium
 is beside the executable after publishing. The standard `artifacts/publish/<runtime>` directory is **deleted
 before copying the new publish**, preventing stale DLLs. Keep only generated deployment files there.
@@ -65,8 +76,9 @@ and measurement-script behavior without a desktop. CI runs these checks on both 
 
 No corpus, PDFs, test artifacts or passwords are packaged. Third-party notices are included.
 Windows x64 is the tested target. Linux still needs full distro/font verification; its pinned PDFium notice texts have been compared and match the bundle.
-Linux also requires the usual Avalonia X11/font/GL platform dependencies. A Linux publish made on Windows
-may need `chmod +x PdfButler` after ZIP extraction; Linux-native publishing preserves executable permissions.
+Linux also requires the usual Avalonia X11/font/GL platform dependencies, and ICU (`libicu`) because globalization is not invariant.
+The Linux AOT folder has not been published or run on Linux yet (CI publishes it on Ubuntu 24.04, so testers then need glibc 2.39 or newer).
+Extract with a tool that keeps executable permissions, or run `chmod +x PdfButler`.
 
 To reproduce the startup measurements (.NET F# Interactive; one discarded warm-up, then at least 20 fresh processes per document):
 
@@ -82,8 +94,7 @@ Account for both processes; the existing `workingSetMB` / `privateMB` fields des
 
 ## Windows: portable or per-user installation
 
-Install the .NET 10 x64 Runtime, extract the ZIP to its final location, then run `PdfButler.exe` for portable use.
-If the runtime is missing, the .NET apphost shows its standard missing-runtime/download prompt.
+Extract the ZIP to its final location, then run `PdfButler.exe` for portable use. No .NET installation is needed.
 No registry changes happen at launch.
 For a per-user installation, run from the extracted folder:
 

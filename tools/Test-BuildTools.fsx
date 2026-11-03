@@ -47,11 +47,16 @@ for profile, native in ["win-x64", "pdfium.dll"; "linux-x64", "libpdfium.so"] do
     validate [] None // existing, regular file and subdirectory
     check (File.ReadAllText existing = "keep this too" && File.Exists hidden && Directory.Exists nested)
         "Destination validation removed existing content."
-    validate ["-p:SelfContained=false"] None
+    // Profiles are Native AOT (always trimmed and self-contained); -p:PublishAot=false is the JIT fallback.
     validate ["-p:SelfContained=true"] None
-    validate ["-p:PublishSingleFile=true"] None
+    validate ["-p:PublishTrimmed=true"] None
     validate ["-p:PublishSingleFile=false"] None
-    validate ["-p:PublishTrimmed=true"] (Some "must be untrimmed")
+    validate ["-p:SelfContained=false"] (Some "always self-contained")
+    validate ["-p:PublishSingleFile=true"] (Some "do not apply")
+    validate ["-p:PublishReadyToRun=true"] (Some "do not apply")
+    validate ["-p:PublishAot=false"] None
+    validate ["-p:PublishAot=false"; "-p:SelfContained=false"; "-p:PublishSingleFile=true"; "-p:PublishReadyToRun=true"] None
+    validate ["-p:PublishAot=false"; "-p:PublishTrimmed=true"] (Some "must be untrimmed")
     validate ["-p:IncludeNativeLibrariesForSelfExtract=true"] (Some "Native libraries must remain")
     validate ["-p:IncludeAllContentForSelfExtract=true"] (Some "Native libraries must remain")
     validate ["-p:RuntimeIdentifier=osx-x64"] (Some "supports only")
@@ -123,7 +128,7 @@ for profile in ["win-x64"; "linux-x64"] do
     seed custom
     deployment "CleanDeploymentDirectory" profile custom [] None
     check (File.Exists(Path.Combine(custom, "stale.dll"))) "MSBuild cleaned custom output without opt-in."
-    deployment "CleanDeploymentDirectory" profile custom ["-p:CleanPublishDirectory=true"; "-p:PublishTrimmed=true"] (Some "must be untrimmed")
+    deployment "CleanDeploymentDirectory" profile custom ["-p:CleanPublishDirectory=true"; "-p:PublishAot=false"; "-p:PublishTrimmed=true"] (Some "must be untrimmed")
     check (File.Exists(Path.Combine(custom, "stale.dll"))) "Invalid deployment options cleaned output."
     deployment "CleanDeploymentDirectory" profile custom ["-p:CleanPublishDirectory=true"] None
     check (not (Directory.Exists custom)) "MSBuild cleanup opt-in did not clean custom output."
