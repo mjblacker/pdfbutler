@@ -12,6 +12,7 @@ open Avalonia.Platform
 open Avalonia.Threading
 open PdfButler.Core
 open PdfButler.Pdfium
+open PdfButler.App.RendererProcess
 
 /// Pages up to this many device pixels are rendered as one bitmap; bigger ones as tiles.
 let wholePageMaxPixels = 6_000_000L
@@ -67,7 +68,7 @@ let private toBitmap (img: RenderedImage) =
     finally
         pin.Free()
 
-type Renderer(doc: PdfDocument, onChanged: unit -> unit) =
+type Renderer(doc: RemoteDocument, onChanged: unit -> unit) =
     let cache =
         LruCache<TileKey, Tile>(cacheBudgetBytes, (fun t -> int64 t.Rect.W * int64 t.Rect.H * 4L), (fun t -> t.Bitmap.Dispose()))
     let inFlight = Dictionary<TileKey, CancellationTokenSource>()

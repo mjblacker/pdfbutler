@@ -14,9 +14,14 @@
   <ItemGroup>
     <Compile Include="Diagnostics.fs" />
     <Compile Include="AppTypes.fs" />
+    <Compile Include="RendererProtocol.fs" />
+    <Compile Include="RendererHost.fs" />
+    <Compile Include="RendererProcess.fs" />
     <Compile Include="PageRenderer.fs" />
     <Compile Include="PdfView.fs" />
     <Compile Include="Icons.fs" />
+    <Compile Include="TabStripPanel.fs" />
+    <Compile Include="SettingsStore.fs" />
     <Compile Include="WindowPlacement.fs" />
     <Compile Include="Dialogs.fs" />
     <Compile Include="DocumentPane.fs" />
@@ -36,10 +41,12 @@
   </ItemGroup>
 
   <ItemGroup>
+    <Content Include="../../packaging/BETA-README.md" Link="README.md" CopyToPublishDirectory="PreserveNewest" />
     <Content Include="../../licenses/**/*" Link="licenses/%(RecursiveDir)%(Filename)%(Extension)" CopyToPublishDirectory="PreserveNewest" />
     <Content Include="../../THIRD_PARTY_NOTICES.md" Link="THIRD_PARTY_NOTICES.md" CopyToPublishDirectory="PreserveNewest" />
     <Content Include="../../docs/DEPLOYMENT.md" Link="DEPLOYMENT.md" CopyToPublishDirectory="PreserveNewest" />
     <Content Include="../../docs/PLAN.md" Link="PLAN.md" CopyToPublishDirectory="PreserveNewest" />
+    <Content Include="../../docs/RENDERER.md" Link="RENDERER.md" CopyToPublishDirectory="PreserveNewest" />
     <Content Include="../../packaging/windows/*.ps1" Link="%(Filename)%(Extension)" CopyToPublishDirectory="PreserveNewest" Condition="'$(RuntimeIdentifier)' == 'win-x64'" />
   </ItemGroup>
 
@@ -49,14 +56,6 @@
     <InternalsVisibleTo Include="PdfButler.App.Tests" />
   </ItemGroup>
 
-  <Target Name="PrepareDeploymentFiles" AfterTargets="ComputeFilesToPublish">
-    <ItemGroup>
-      <!-- Native packages ship ~100 MiB of PDBs; none are needed to run the reader. -->
-      <ResolvedFileToPublish Remove="@(ResolvedFileToPublish)" Condition="'%(ResolvedFileToPublish.Extension)' == '.pdb'" />
-      <_RuntimeNoticePack Include="@(ResolvedRuntimePack)" Condition="'%(ResolvedRuntimePack.FrameworkName)' == 'Microsoft.NETCore.App'" />
-      <ResolvedFileToPublish Include="@(_RuntimeNoticePack->'%(PackageDirectory)/LICENSE.TXT')" RelativePath="licenses/dotnet/LICENSE.TXT" CopyToPublishDirectory="PreserveNewest" />
-      <ResolvedFileToPublish Include="@(_RuntimeNoticePack->'%(PackageDirectory)/THIRD-PARTY-NOTICES.TXT')" RelativePath="licenses/dotnet/THIRD-PARTY-NOTICES.TXT" CopyToPublishDirectory="PreserveNewest" />
-    </ItemGroup>
-  </Target>
+  <Import Project="../../tools/Deployment.targets" />
 
 </Project>

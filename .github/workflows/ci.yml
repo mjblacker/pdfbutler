@@ -34,12 +34,13 @@ jobs:
           path: corpus/cache
           key: corpus-${{ hashFiles('corpus/manifest.json') }}
       - run: dotnet restore PdfButler.slnx
+      - name: Cross-platform build-tool checks
+        run: dotnet fsi tools/Test-BuildTools.fsx
       - name: Fetch and verify pinned core corpus (never extended/private files)
         run: dotnet run --project tools/PdfButler.Corpus -- fetch
       - run: dotnet test PdfButler.slnx --configuration Release --logger "trx;LogFileName=tests.trx" --results-directory artifacts/test-results
       - name: Publish private deployment folder
-        shell: pwsh
-        run: ./tools/Publish.ps1 -Runtime ${{ matrix.rid }}
+        run: dotnet publish src/PdfButler.App -p:PublishProfile=${{ matrix.rid }}
       - name: Test results only (no document images or extracted text)
         if: always()
         uses: actions/upload-artifact@v4

@@ -8,15 +8,51 @@ Last updated: 2026-11-03. This file continues `reports/Lightweight PDF viewer bu
 |---|---|
 | **1. Compatibility** (rendering, text geometry, search, links/outline, passwords, annotation/form display on discriminating cases) | **Done on Windows.** Not yet run on Linux. |
 | **2. Vertical slice** (open → owner thread → visible page → scroll/zoom → selection/search, instrumented) | **Done on Windows**: engine, view model and UI built and tested (below). Needs hand testing on a real desktop. |
-| 3. Hardening (security policy, resource bounds, keyboard/DPI, packaging) | Engine limits/inert actions/typed errors, tab bounds and private deployment packaging done. Desktop DPI/accessibility and process sandbox still outstanding. |
+| 3. Hardening (security policy, resource bounds, keyboard/DPI, packaging) | Engine limits/inert actions/typed errors, tab bounds, renderer crash isolation and private deployment packaging done. Desktop DPI/accessibility and OS sandbox still outstanding. |
 | 4. Private beta | Not started. |
 
-Tests: **51 core + 167 engine (129 corpus documents + 1 extended) + 21 UI = 239**, all passing on Windows in about 20 seconds.
+Tests: **61 core + 167 engine (129 corpus documents + 1 extended) + 52 app/IPC/lifecycle = 280**, all passing on Windows.
 
-### Latest increment: tabs, branding and deployment
+### Latest increment: many tabs, settings and session restore
+
+- **Tab strip without a scroll bar.** Tabs shrink from 220 to 110 DIPs to fit, then the strip scrolls: ◀ ▶ arrows and an
+  "all open PDFs" ⌄ list with a filter appear only when tabs overflow (the list shows from two tabs). The mouse wheel scrolls
+  the strip, the selected tab is always scrolled fully into view, and middle-click closes a tab. The strip height never changes.
+  Sizing/scrolling rules are pure (`Core/TabStrip.fs`) with property tests; `App/TabStripPanel.fs` only lays out.
+- **Sidebar layout** (setting): open PDFs listed down the left with full names, count and a settings button.
+- **Settings window** (⚙ button or Ctrl+,), applied and saved on every change: tab layout, maximum open PDFs
+  (**default 30**, 1–100), ask before closing several PDFs, reopen last session, theme (system/light/dark) and default zoom
+  for newly opened PDFs. Stored in `%LOCALAPPDATA%\PdfButler\settings.json` (Linux `~/.local/share/PdfButler/`), parsed
+  field by field so a bad value only resets that field (`Core/Settings.fs`).
+- **Session restore** (off by default): on close, `session.json` keeps paths, the 0-based top page per tab and the selected tab,
+  never passwords. With restore off the file is deleted. Restored tabs start **no helper until first selected**; missing files are
+  skipped (existence checked off the UI thread). Files given on the command line are opened after the restored tabs and selected.
+  The saved page is shown with `Viewer.ShowPage`, which adds no Back entry. `--measure` never reads or writes preferences.
+- Follow-up: put idle tabs to sleep (close their helper and reopen on selection) so open-tab count is not bounded by memory.
+
+### Previous increment: renderer crash isolation
+
+- Opening a tab now immediately shows an indeterminate loader with the filename and a cloud-download
+  explanation. It remains until the first visible page pixels or page-error placeholder, and clears on
+  open failure/close. Delayed-open tests cover feedback, tab switching and closing without resurrection.
+- **One helper process per PDF**, launched from the same executable in headless `--renderer` mode.
+  A PDFium crash/hang now fails only its document; other tabs and the UI remain usable. **Reopen PDF**
+  starts a fresh renderer. Closing a tab kills its helper without waiting for native work.
+- Private, bounded, versioned binary stdin/stdout IPC carries pixels and document data; paths/passwords
+  are not process arguments. Each dispatched request has a 60-second timeout. Helpers exit on parent-pipe EOF.
+- All UI tests now use real helpers. Additional tests cover forced helper termination during open and in
+  active/inactive tabs, retry, independent documents, timeout/cancellation/cleanup, bounded decoding and exact data/pixel transport.
+- **Crash isolation, not an OS sandbox.** Helpers retain the user's permissions. Windows is tested;
+  Linux uses the same process/pipe implementation but has not yet been run. See [`RENDERER.md`](RENDERER.md).
+- Historical startup/memory figures below predate this change. `--measure` now reports renderer memory
+  separately from UI memory; remeasure total memory and startup before making new performance claims.
+- Both ReadyToRun targets publish successfully. The Windows folder passes a `--measure`
+  first-page smoke test; Linux cross-publishing is not Linux runtime verification.
+
+### Previous increment: tabs, branding and deployment
 
 - Branded, light/dark-aware header with an original folded-document/bow-tie icon and wordmark (`assets/`).
-- Up to **10 PDFs** in named, closeable tabs. Page/scroll/zoom/rotation/history, outline, search and selection belong to each tab.
+- Up to **10 PDFs** (now a setting, default 30) in named, closeable tabs. Page/scroll/zoom/rotation/history, outline, search and selection belong to each tab.
   Duplicate paths select their existing tab (case-insensitive on Windows). Ctrl+Tab / Ctrl+Shift+Tab switch; Ctrl+W closes only the active tab.
   Picker, drag/drop and command line accept multiple files. Inactive tabs release raster caches and cancel queued renders;
   the active raster cache is still limited to 128 MiB (native document/text memory is separate).
@@ -24,8 +60,9 @@ Tests: **51 core + 167 engine (129 corpus documents + 1 extended) + 21 UI = 239*
 - Visible **Back / Forward** history buttons, plus the existing Alt+Left / Alt+Right shortcuts.
 - Windows single-instance activation: subsequent launches forward absolute file paths through a bounded, current-user-only named pipe.
   `--measure` bypasses this so each measurement is a fresh process. Linux currently opens separate instances.
-- Release/self-contained/ReadyToRun **folder publish profiles** for win-x64 and linux-x64, with native libraries beside the executable,
-  dependency notices included and debug symbols excluded. `tools/Publish.ps1` refuses nonempty destinations.
+- Release/framework-dependent/ReadyToRun **publish profiles** for win-x64 and linux-x64: managed DLLs bundled into the executable,
+  native libraries beside it, dependency notices included and debug symbols excluded. Testers install the .NET 10 x64 Runtime.
+  Standard outputs are cleaned automatically; custom directories require explicit cleanup opt-in. Successful publishes create a sibling `.zip`.
 - Per-user Windows install/register/unregister scripts with `-WhatIf`. Registration adds Open with / Default Apps eligibility and an optional
   classic PDF context-menu verb. It **never changes the default PDF app** or touches Windows' protected UserChoice key.
   On Windows 11 the classic verb normally appears under Show more options. Actual registration has not been applied to this development machine.
@@ -42,7 +79,8 @@ This is **private deployment**, not completion of the sandbox/public-release gat
   which is wrong on Windows where `unsigned long` is 32-bit. Text/link/bookmark APIs we need also weren't in its public surface.
   We use the same bblanchon native packages (now 158.0.8125, non-V8) with ~45 hand-checked signatures (`Native.fs`). Checking them against the headers caught a real bug before it shipped:
   `FPDFBitmap_BGRx` is 3, not 2.
-- **Single global owner thread with a priority queue** (`Worker.fs`). In-process for now (see Risks).
+- **Single global owner thread with a priority queue per process** (`Worker.fs`). The UI uses one helper
+  per document; the direct in-process engine remains available to engine tests/tools.
 - **Form widgets are displayed** through a form environment with every host callback NULL, plus `FPDF_FFLDraw`. Static-XFA documents with an AcroForm
   fallback (`xfa-foreground`) display fine. Dynamic XFA (`xfa-full`) renders blank, and the UI must warn about it.
 - **Independent oracle = pdf.js in Node.** It has already caught five real issues:
@@ -64,12 +102,15 @@ an error panel, and the keyboard shortcuts below.
 | File | What it does |
 |---|---|
 | `Diagnostics.fs` | Timing marks since process start, JSON snapshot for `--measure`. |
+| `RendererProcess.fs`, `RendererProtocol.fs`, `RendererHost.fs` | Per-document helper ownership, bounded binary IPC and headless PDFium host. |
 | `PageRenderer.fs` | Tile planning (whole page ≤ 6 Mpx and ≤ 4096 px per side, else 1024 px tiles) and the 128 MiB bitmap cache (`Renderer`). |
 | `PdfView.fs` | `PageCanvas` (drawing, pointer input, search, selection) and `DocumentView` (canvas + scroll bars). |
-| `Dialogs.fs` | Password, confirm and info dialogs. |
+| `Dialogs.fs` | Password, confirm, info, close-several and settings dialogs. |
+| `TabStripPanel.fs` | Shrinking, offset-scrolled tab row (rules in `Core/TabStrip.fs`). |
+| `SettingsStore.fs` | Atomic, failure-tolerant `settings.json` / `session.json` storage. |
 | `AppTypes.fs` | Shared UI types (`Centre`). |
 | `DocumentPane.fs` | One document's toolbar, notices, search, outline, centre, status, keyboard and async open/close flow. |
-| `MainWindow.fs` | Branded window, bounded tab ownership, multi-file picker/drop, tab shortcuts. |
+| `MainWindow.fs` | Branded window, bounded tab ownership (top strip or sidebar), lazy restored tabs, settings, multi-file picker/drop, tab shortcuts. |
 | `SingleInstance.fs` | Bounded current-user Windows activation pipe and instance ownership. |
 | `Program.fs` | `App` (Fluent, follows system light/dark), entry point, `--measure <file>`. |
 
@@ -79,7 +120,7 @@ Pure parts went into Core with tests: `Core/PageInput.fs` parses the page box (e
 Dialogs and the URL launcher are replaceable properties on `MainWindow` (`AskPassword`, `ConfirmLink`, `LaunchUri`), so tests never show a dialog or launch anything.
 Only http, https and mailto links are offered (after a confirmation showing the full URL). Other schemes, including `file:`, and unsupported actions only show a status message.
 
-Keyboard: Ctrl+O open, Ctrl+W close tab, Ctrl+Tab / Ctrl+Shift+Tab next/previous tab, Ctrl+F find, F3 / Shift+F3 next/previous hit, Esc (close search, then clear selection), Ctrl+G page box,
+Keyboard: Ctrl+O open, Ctrl+W close tab, Ctrl+, settings, Ctrl+Tab / Ctrl+Shift+Tab next/previous tab, Ctrl+F find, F3 / Shift+F3 next/previous hit, Esc (close search, then clear selection), Ctrl+G page box,
 Ctrl+C copy, Ctrl+= / Ctrl+− zoom, Ctrl+0 fit page, Ctrl+1 100%, Ctrl+2 fit width, Ctrl+Shift+= / Ctrl+Shift+− rotate,
 PageUp/PageDown, Space/Shift+Space, Home/End, arrows, N/P, Alt+Left/Right. While typing in a box, only the Ctrl, F3, Esc and Alt shortcuts apply.
 
@@ -93,6 +134,8 @@ and the cache staying ≤ 128 MiB while scrolling 1500 pages at 200%.
 Five further tests cover independent tab state/cache suspension/duplicate activation, the tab cap and inactive close,
 close-during-password-open, real Windows pipe forwarding (spaces/Unicode paths), and multi-file command-line parsing.
 The tab-state test saves synthetic-document light/dark frames to `artifacts/app/tabs-light.png` and `tabs-dark.png`; both have been reviewed.
+Eight more cover the overflowing strip (arrows, reveal, fixed height, lazy tabs; frame `tabs-overflow.png`), session restore at the saved page,
+the empty session when restore is off, the sidebar layout (`tabs-sidebar.png`), the close-prompt setting, default zoom, and the settings window.
 
 Harness notes: `pumpUntil` runs the real dispatcher loop briefly, so timers such as the search debounce fire. `saveFrame w "name"` writes
 `artifacts/app/name.png` when you need to look at a failure.
@@ -126,7 +169,7 @@ one discarded warm-up per document, warm filesystem cache. Modes ran sequentiall
 
 **Decision: keep ReadyToRun enabled for folder publishing.** It roughly halves launch time here and meets the original startup/memory targets.
 Ordinary edit/run builds stay JIT; NativeAOT is deferred, not needed to meet the current targets.
-Raw samples are local/ignored: `artifacts/startup-r2r.json` and `startup-jit.json`. Reproduce with `tools/Measure-Startup.ps1` (see deployment guide).
+Raw samples are local/ignored: `artifacts/startup-r2r.json` and `startup-jit.json`. Reproduce with `tools/Measure-Startup.fsx` (see deployment guide).
 SumatraPDF wasn't found in the usual installation folders, so the independent viewer comparison remains outstanding.
 This is not a cold-disk, high-DPI or hostile-document performance claim.
 
@@ -134,7 +177,7 @@ This is not a cold-disk, high-DPI or hostile-document performance claim.
 
 - Hand testing on a real desktop: file picker, drag and drop from Explorer, high-DPI monitors and DPI changes, dark theme, screen reader names.
   The picker and drag/drop aren't covered by the headless tests.
-- Not built yet: remembering the last position per file between sessions, recent files, Select all. Position is retained while a tab stays open.
+- Not built yet: remembering the position of files closed before the session ended, recent files, Select all. Session restore keeps the top page of tabs still open at exit.
 - Outline children are built lazily on first expand. Very large outlines haven't been timed.
 
 ### Next
@@ -148,9 +191,11 @@ This is not a cold-disk, high-DPI or hostile-document performance claim.
 
 ## Risks and known limitations
 
-- **PDFium runs in-process.** A crash on a hostile file takes the app down, and there is no OS sandbox. That's acceptable for private use. A restartable,
-  OS-restricted helper process is needed before distributing to others (plan gate 3).
-- Cancellation can't interrupt a running native render. Large pages are tiled to bound the cost of each call.
+- **PDFium is crash-isolated, not sandboxed.** Per-document helpers can be killed/restarted, but still have
+  the user's permissions. OS restrictions and brokered read-only document access are needed before distributing
+  to others (plan gate 3). A native exploit or system-wide memory exhaustion is not contained by this change.
+- Request cancellation can't interrupt a running native render; tab close or the IPC timeout can terminate
+  its helper. Large pages are tiled to bound the cost of each call.
 - Page-tree repair differs from pdf.js on some malformed files (see the manifest's `discrepancies`). Missing pages show a placeholder.
 - The ISO 32000 extended document is local-only. Its oracle output and goldens are gitignored.
 - The `pdfjs` corpus files have unknown individual rights. Their derived oracle text and goldens are committed: review this before publishing the repo.

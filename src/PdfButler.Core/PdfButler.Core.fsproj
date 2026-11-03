@@ -16,6 +16,8 @@
     <Compile Include="LruCache.fs" />
     <Compile Include="Viewer.fs" />
     <Compile Include="PageInput.fs" />
+    <Compile Include="TabStrip.fs" />
+    <Compile Include="Settings.fs" />
   </ItemGroup>
 
 </Project>

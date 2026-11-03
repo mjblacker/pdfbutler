@@ -14,9 +14,9 @@ Background research: `reports/Lightweight PDF viewer build plan.md`. Current sta
 ## Layout
 
 ```
-src/PdfButler.Core      Pure F#: types, geometry, layout, viewer state machine, history, selection, search, LRU cache. No native code.
+src/PdfButler.Core      Pure F#: types, geometry, layout, viewer state machine, history, selection, search, LRU cache, settings/session, tab strip sizing. No native code.
 src/PdfButler.Pdfium    Owned PDFium adapter: P/Invoke (Native.fs), single owner thread (Worker.fs), document API (Engine.fs).
-src/PdfButler.App       Avalonia UI: page canvas, bitmap cache, main window, dialogs, --measure.
+src/PdfButler.App       Avalonia UI, per-document helper/protocol/host, page canvas, bitmap cache, --measure.
 tests/PdfButler.Core.Tests     Unit + FsCheck property tests for Core.
 tests/PdfButler.Engine.Tests   Worker, synthetic ground-truth, lifecycle/errors, corpus contract suite.
 tests/PdfButler.App.Tests      Headless UI tests: real Skia frames, real engine, synthetic PDFs.
@@ -78,6 +78,9 @@ Mutation check: deliberately breaking `Geometry.displayToView` for R90 makes the
 
 - **Every PDFium call runs on the single owner thread** (`Worker`), for all documents. PDFium is not thread-safe at all.
   Public `PdfDocument` methods queue work; never call `Native.*` elsewhere.
+- The UI uses `RendererEngine`/`RemoteDocument`: **one helper process per PDF**, running the same executable
+  with `--renderer` before UI/single-instance startup. Only the helper initialises PDFium. Direct engine tests/tools
+  remain in-process. This is crash isolation, not an OS sandbox; see `docs/RENDERER.md`. Keep passwords out of arguments/logs.
 - Priorities: `Interactive` (visible pages, open) > `Prefetch` > `Background` (search). Cancellation only removes *queued* work.
 - No finalizers that touch PDFium. Documents must be disposed (`CloseAsync`/`Dispose`).
 - Files are opened with `FileAccess.Read` + `FileShare.ReadWrite|Delete` through a custom read callback: never written, never locked against others.

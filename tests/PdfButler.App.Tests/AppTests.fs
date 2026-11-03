@@ -10,6 +10,7 @@ open Avalonia.Controls
 open Avalonia.Headless.XUnit
 open Avalonia.Input
 open Avalonia.Input.Platform
+open Avalonia.VisualTree
 open Xunit
 open PdfButler.App
 open PdfButler.App.MainWindow
@@ -400,18 +401,196 @@ let ``tabs retain independent state and inactive tabs release raster memory`` ()
 [<AvaloniaFact>]
 let ``tab limit refuses another file and closing an inactive tab preserves the active one`` () =
     let w, _ = newWindow ()
-    for i in 1 .. maxTabs do openFile w (synthetic $"limit-{i}.pdf" inkDoc)
+    Assert.Equal(30, w.Settings.MaxOpenFiles)
+    let limit = 3
+    w.ApplySettings { w.Settings with MaxOpenFiles = limit }
+    for i in 1 .. limit do openFile w (synthetic $"limit-{i}.pdf" inkDoc)
     let active = w.Canvas.Document
     openFile w (synthetic "over-limit.pdf" inkDoc)
-    Assert.Equal(maxTabs, w.TabCount)
+    Assert.Equal(limit, w.TabCount)
     Assert.Same(active, w.Canvas.Document)
     Assert.Contains("Close a tab", w.StatusMessage)
     w.CloseTab 0
     Assert.Same(active, w.Canvas.Document)
-    Assert.Equal(maxTabs - 2, w.SelectedTabIndex)
+    Assert.Equal(limit - 2, w.SelectedTabIndex)
     openFile w (synthetic "over-limit.pdf" inkDoc)
-    Assert.Equal(maxTabs, w.TabCount)
+    Assert.Equal(limit, w.TabCount)
     w.Close()
+
+let private restoredSession (prefix: string) (count: int) (page: int) =
+    { Settings.Tabs = [ for i in 1 .. count -> { Settings.Path = synthetic $"{prefix}-{i}.pdf" inkDoc; Settings.Page = page } ]
+      Settings.Selected = 0 }
+
+[<AvaloniaFact>]
+let ``many tabs shrink then scroll with arrows and the strip never changes height`` () =
+    let w, _ = newWindow ()
+    openFile w (synthetic "strip-first.pdf" inkDoc)
+    let oneTabHeight = w.TabStrip.Bounds.Height
+    Assert.False(w.ScrollTabsBackButton.IsVisible)
+    Assert.False(w.TabStrip.Overflows)
+    // Restored tabs are cheap: no helper starts until a tab is selected.
+    pumpTask (w.RestoreSessionAsync(restoredSession "strip" 24 0, false))
+    pumpFor 30
+    Assert.Equal(25, w.TabCount)
+    Assert.Equal(0, w.SelectedTabIndex)
+    Assert.True(w.TabStrip.Overflows)
+    Assert.True(w.ScrollTabsBackButton.IsVisible && w.ScrollTabsForwardButton.IsVisible && w.AllTabsButton.IsVisible)
+    Assert.False(w.ScrollTabsBackButton.IsEnabled)
+    Assert.Equal(oneTabHeight, w.TabStrip.Bounds.Height)
+    Assert.Null(w.TabStrip.FindAncestorOfType<ScrollViewer>()) // no scroll bar can appear around the strip
+    let widths = [ for i in 0 .. w.TabCount - 1 -> (w.TabHeader i).Bounds.Width ]
+    Assert.All(widths, fun x -> Assert.Equal(TabStrip.defaultParams.MinWidth, x, 3))
+    for i in 1 .. 24 do Assert.False(w.IsTabLoaded i)
+    // Selecting the last tab loads only it and scrolls it fully into view.
+    w.SelectTab 24
+    pumpUntil "last tab open" (fun () -> w.Centre = DocumentShown)
+    settle w
+    Assert.True(w.IsTabLoaded 24)
+    Assert.False(w.IsTabLoaded 12)
+    let last = w.TabHeader 24
+    let stripRight = w.TabStrip.Bounds.Width
+    Assert.True(last.Bounds.Right <= stripRight + 0.5 && last.Bounds.X >= -0.5, $"last tab at {last.Bounds}, strip {stripRight}")
+    Assert.True(w.ScrollTabsBackButton.IsEnabled)
+    Assert.False(w.ScrollTabsForwardButton.IsEnabled)
+    saveFrame w "tabs-overflow" |> ignore
+    let before = w.TabStrip.Offset
+    w.ScrollTabsBackButton.RaiseEvent(Avalonia.Interactivity.RoutedEventArgs(Button.ClickEvent))
+    pumpFor 20
+    Assert.True(w.TabStrip.Offset < before)
+    Assert.True(w.ScrollTabsForwardButton.IsEnabled)
+    // Closing tabs until they fit again hides the arrows (select a loaded tab so closing doesn't load others).
+    w.SelectTab 0
+    while w.TabCount > 3 do w.CloseTab(w.TabCount - 1)
+    pumpFor 30
+    Assert.False(w.TabStrip.Overflows)
+    Assert.False(w.ScrollTabsBackButton.IsVisible)
+    Assert.Equal(0.0, w.TabStrip.Offset)
+    w.Close()
+
+[<AvaloniaFact>]
+let ``restored tabs open on first selection at their saved page without a back entry`` () =
+    let w, _ = newWindow ()
+    let session = restoredSession "restore" 3 2
+    let missing = Path.Combine(tempDir.Value, "restore-missing.pdf")
+    let session = { session with Settings.Tabs = session.Tabs @ [ { Settings.Path = missing; Settings.Page = 0 } ]; Settings.Selected = 1 }
+    pumpTask (w.RestoreSessionAsync(session, true))
+    Assert.Equal(3, w.TabCount) // the missing file is skipped
+    Assert.Equal(1, w.SelectedTabIndex)
+    pumpUntil "restored tab open" (fun () -> w.Centre = DocumentShown)
+    settle w
+    Assert.Equal(2, w.Canvas.CurrentPage)
+    Assert.False(History.canGoBack w.Canvas.State.History)
+    Assert.False(w.IsTabLoaded 0)
+    w.Canvas.Dispatch(Viewer.GoToPage 4)
+    let snap = w.SessionSnapshot()
+    Assert.Equal(1, snap.Selected)
+    Assert.Equal<int list>([ 2; 4; 2 ], snap.Tabs |> List.map (fun t -> t.Page))
+    // Restoring again does not duplicate tabs.
+    pumpTask (w.RestoreSessionAsync(session, true))
+    Assert.Equal(3, w.TabCount)
+    let mutable saved = None
+    w.SaveSession <- fun s -> saved <- Some s
+    w.ApplySettings { w.Settings with RestoreSession = true; ConfirmCloseMultiple = false }
+    w.Close()
+    pumpUntil "closed" (fun () -> not w.IsVisible)
+    Assert.Equal(3, saved.Value.Tabs.Length)
+
+[<AvaloniaFact>]
+let ``with restore off the window saves an empty session`` () =
+    let w, _ = newWindow ()
+    openFile w (synthetic "no-restore.pdf" inkDoc)
+    let mutable saved = None
+    w.SaveSession <- fun s -> saved <- Some s
+    w.Close()
+    pumpUntil "closed" (fun () -> not w.IsVisible)
+    Assert.Equal(Some Settings.emptySession, saved)
+
+[<AvaloniaFact>]
+let ``sidebar layout lists every tab and switching back restores the strip`` () =
+    let w, _ = newWindow ()
+    openFile w (synthetic "side-a.pdf" inkDoc)
+    openFile w (synthetic "side-b.pdf" inkDoc)
+    w.ApplySettings { w.Settings with TabLayout = Settings.Sidebar }
+    pumpFor 30
+    Assert.True(w.TabSidebar.IsVisible)
+    Assert.Equal(0, w.TabStrip.Children.Count)
+    Assert.True((w.TabHeader 0).IsVisible && (w.TabHeader 0).Bounds.Width > 150.0)
+    Assert.True(w.Canvas.TranslatePoint(Point(0.0, 0.0), w).Value.X >= w.TabSidebar.Bounds.Width)
+    saveFrame w "tabs-sidebar" |> ignore
+    w.SelectTab 0
+    Assert.Equal("side-a.pdf — PdfButler", w.Title)
+    w.ApplySettings { w.Settings with TabLayout = Settings.Top }
+    pumpFor 30
+    Assert.False(w.TabSidebar.IsVisible)
+    Assert.Equal(2, w.TabStrip.Children.Count)
+    w.Close()
+
+[<AvaloniaFact>]
+let ``turning off the close prompt closes every tab without asking`` () =
+    let w, _ = newWindow ()
+    openFile w (synthetic "noprompt-a.pdf" inkDoc)
+    openFile w (synthetic "noprompt-b.pdf" inkDoc)
+    let mutable prompts = 0
+    w.ConfirmClose <- fun _ -> prompts <- prompts + 1; Threading.Tasks.Task.FromResult Dialogs.Cancel
+    w.ApplySettings { w.Settings with ConfirmCloseMultiple = false }
+    w.Close()
+    pumpUntil "closed" (fun () -> not w.IsVisible)
+    Assert.Equal(0, prompts)
+
+[<AvaloniaFact>]
+let ``default zoom setting applies to newly opened PDFs`` () =
+    let w, _ = newWindow ()
+    openFile w (synthetic "zoom-a.pdf" inkDoc)
+    Assert.Equal(Viewer.Manual, w.Canvas.State.Mode)
+    Assert.Equal(1.0, w.Canvas.State.Zoom)
+    w.ApplySettings { w.Settings with DefaultZoom = Settings.FitWidth }
+    openFile w (synthetic "zoom-b.pdf" inkDoc)
+    Assert.Equal(Viewer.FitWidth, w.Canvas.State.Mode)
+    let fitted = Layout.fitWidthZoom w.Canvas.State.Pages w.Canvas.State.Layout.Params w.Canvas.State.Viewport
+    Assert.Equal(fitted, w.Canvas.State.Zoom, 6)
+    w.SelectTab 0
+    Assert.Equal(Viewer.Manual, w.Canvas.State.Mode) // already-open PDFs keep their zoom
+    w.Close()
+
+[<AvaloniaFact>]
+let ``settings window applies each change at once and reset restores defaults`` () =
+    let changes = ResizeArray<Settings.Settings>()
+    let c = Dialogs.settingsWindow { Settings.defaults with MaxOpenFiles = 12 } changes.Add
+    c.Window.Show()
+    pumpFor 20
+    Assert.Equal(12m, c.MaxOpenFiles.Value.Value)
+    Assert.Empty changes
+    c.TabLayout.SelectedIndex <- 1
+    c.RestoreSession.IsChecked <- Nullable true
+    c.MaxOpenFiles.Value <- Nullable 40m
+    c.DefaultZoom.SelectedIndex <- 2
+    pumpFor 10
+    let last = changes[changes.Count - 1]
+    Assert.Equal({ Settings.defaults with TabLayout = Settings.Sidebar; RestoreSession = true; MaxOpenFiles = 40; DefaultZoom = Settings.FitPage }, last)
+    c.Reset.RaiseEvent(Avalonia.Interactivity.RoutedEventArgs(Button.ClickEvent))
+    pumpFor 10
+    Assert.Equal(Settings.defaults, changes[changes.Count - 1])
+    Assert.Equal(0, c.TabLayout.SelectedIndex)
+    c.Window.Close()
+
+[<AvaloniaFact>]
+let ``Ctrl+comma opens one settings window and changes are saved`` () =
+    let w, _ = newWindow ()
+    let saved = ResizeArray<Settings.Settings>()
+    w.SaveSettings <- saved.Add
+    press w Key.OemComma RawInputModifiers.Control
+    pumpFor 20
+    let dialog = w.SettingsDialog.Value
+    press w Key.OemComma RawInputModifiers.Control
+    Assert.Same(dialog, w.SettingsDialog.Value)
+    let box = dialog.GetVisualDescendants() |> Seq.pick (function :? CheckBox as c when string c.Content = "Reopen the PDFs that were open last time" -> Some c | _ -> None)
+    box.IsChecked <- Nullable true
+    pumpFor 10
+    Assert.True(w.Settings.RestoreSession)
+    Assert.True(saved[saved.Count - 1].RestoreSession)
+    w.Close()
+    pumpUntil "closed" (fun () -> not w.IsVisible)
+    Assert.True(w.SettingsDialog.IsNone)
 
 [<AvaloniaFact>]
 let ``closing a tab during password prompt cannot resurrect the document`` () =
@@ -565,3 +744,164 @@ let ``ctrl+w closes the document`` () =
     Assert.True(d.IsClosed)
     Assert.Equal("PdfButler", w.Title)
     w.Close()
+
+[<AvaloniaFact>]
+let ``renderer crash affects only its tab and reopen starts a fresh renderer`` () =
+    let w, _ = newWindow ()
+    try
+        openFile w (synthetic "crash-healthy.pdf" inkDoc)
+        let healthy = w.Canvas.Document
+        openFile w (synthetic "crash-victim.pdf" inkDoc)
+        let victim = w.Canvas.Document
+        let oldId = victim.Id
+        use child = Diagnostics.Process.GetProcessById victim.ProcessId
+        child.Kill(true)
+        pumpUntil "crash shown" (fun () -> match w.Centre with OpenFailed _ -> true | _ -> false)
+        Assert.Null(w.Canvas.Document)
+        Assert.True(victim.IsClosed)
+        Assert.True(w.IsVisible)
+        Assert.Equal(2, w.TabCount)
+        let retry =
+            w.GetVisualDescendants() |> Seq.choose (function :? Button as b -> Some b | _ -> None)
+            |> Seq.find (fun b -> string b.Content = "Reopen PDF")
+        retry.RaiseEvent(Interactivity.RoutedEventArgs(Button.ClickEvent))
+        pumpUntil "reopened" (fun () -> w.Centre = DocumentShown)
+        settle w
+        Assert.NotEqual(oldId, w.Canvas.Document.Id)
+        Assert.True(dark (capture w) (windowPointOf w 0 150.0 142.0))
+        w.SelectTab 0
+        settle w
+        Assert.Same(healthy, w.Canvas.Document)
+        Assert.True(dark (capture w) (windowPointOf w 0 150.0 142.0))
+    finally w.Close()
+
+[<AvaloniaFact>]
+let ``an inactive renderer crash does not replace the active document or leak on close`` () =
+    let w, _ = newWindow ()
+    try
+        openFile w (synthetic "inactive-crash.pdf" inkDoc)
+        let inactive = w.Canvas.Document
+        use victim = Diagnostics.Process.GetProcessById inactive.ProcessId
+        openFile w (synthetic "active-survivor.pdf" inkDoc)
+        let survivor = w.Canvas.Document
+        use healthy = Diagnostics.Process.GetProcessById survivor.ProcessId
+        victim.Kill(true)
+        pumpUntil "inactive document closed" (fun () -> inactive.IsClosed)
+        Assert.Same(survivor, w.Canvas.Document)
+        Assert.Equal(DocumentShown, w.Centre)
+        Assert.False(healthy.HasExited)
+        w.SelectTab 0
+        match w.Centre with
+        | OpenFailed(name, _) -> Assert.Equal("inactive-crash.pdf", name)
+        | c -> failwithf "unexpected %A" c
+        w.Close()
+        pumpUntil "window closed" (fun () -> not w.IsVisible)
+        Assert.True(healthy.WaitForExit 5000)
+    finally w.Close()
+
+[<AvaloniaFact>]
+let ``a helper dying while opening shows an error and the next document still opens`` () =
+    let mutable first = true
+    let launch () =
+        let session = new RendererProcess.RendererSession(RendererProcess.startInfo (), TimeSpan.FromSeconds 5.0)
+        if first then
+            first <- false
+            use child = Diagnostics.Process.GetProcessById session.ProcessId
+            child.Kill(true)
+            Assert.True(child.WaitForExit 5000)
+        session
+    let w = MainWindow(RendererProcess.RendererEngine(launch), Width = 900.0, Height = 700.0)
+    w.ConfirmClose <- fun _ -> Threading.Tasks.Task.FromResult Dialogs.All
+    try
+        w.Show()
+        openFile w (synthetic "crash-during-open.pdf" inkDoc)
+        match w.Centre with
+        | OpenFailed(name, _) -> Assert.Equal("crash-during-open.pdf", name)
+        | c -> failwithf "unexpected %A" c
+        openFile w (synthetic "after-open-crash.pdf" inkDoc)
+        Assert.Equal(DocumentShown, w.Centre)
+        Assert.True(dark (capture w) (windowPointOf w 0 150.0 142.0))
+    finally w.Close()
+
+let private loadingProgress (w: MainWindow) =
+    w.GetVisualDescendants() |> Seq.choose (function :? ProgressBar as p -> Some p | _ -> None)
+    |> Seq.find (fun p -> Automation.AutomationProperties.GetName p = "Loading PDF")
+
+[<AvaloniaFact>]
+let ``slow opens show an immediate loader which stops on first page or open failure`` () =
+    use release = new Threading.ManualResetEventSlim(false)
+    let launch () =
+        if not (release.Wait 10000) then failwith "test open barrier timed out"
+        new RendererProcess.RendererSession(RendererProcess.startInfo (), TimeSpan.FromSeconds 5.0)
+    let w = MainWindow(RendererProcess.RendererEngine(launch), Width = 900.0, Height = 700.0)
+    w.ConfirmClose <- fun _ -> Threading.Tasks.Task.FromResult Dialogs.All
+    try
+        w.Show()
+        let opening = w.OpenFileAsync(synthetic "cloud-backed.pdf" inkDoc)
+        Assert.Equal(Opening "cloud-backed.pdf", w.Centre)
+        Assert.False(opening.IsCompleted)
+        pumpFor 30
+        let progress = loadingProgress w
+        Assert.True(progress.IsEffectivelyVisible)
+        Assert.True(progress.IsIndeterminate)
+        Assert.False(w.PageBox.IsEnabled)
+        let texts = w.GetVisualDescendants() |> Seq.choose (function :? TextBlock as t when t.IsEffectivelyVisible -> Some t.Text | _ -> None) |> Seq.toList
+        Assert.Contains("Opening “cloud-backed.pdf”…", texts)
+        Assert.Contains("Cloud-backed files may take longer if they need to download first.", texts)
+        saveFrame w "loading-cloud-file" |> ignore
+        release.Set()
+        pumpTask opening
+        settle w
+        pumpUntil "loader hidden after first content" (fun () -> not progress.IsEffectivelyVisible)
+        Assert.Equal(DocumentShown, w.Centre)
+        Assert.False(progress.IsIndeterminate)
+        Assert.True(w.PageBox.IsEnabled)
+        Assert.True(dark (capture w) (windowPointOf w 0 150.0 142.0))
+        let path = Path.Combine(tempDir.Value, "loading-malformed.pdf")
+        File.WriteAllText(path, "not a PDF")
+        let failed = w.OpenFileAsync path
+        Assert.Equal(Opening "loading-malformed.pdf", w.Centre)
+        pumpTask failed
+        match w.Centre with
+        | OpenFailed _ -> ()
+        | c -> failwithf "unexpected %A" c
+        Assert.False((loadingProgress w).IsEffectivelyVisible)
+        Assert.False((loadingProgress w).IsIndeterminate)
+    finally
+        release.Set()
+        w.Close()
+
+[<AvaloniaFact>]
+let ``a loading tab can be switched away from and closed without resurrecting it`` () =
+    use release = new Threading.ManualResetEventSlim(true)
+    let launch () =
+        if not (release.Wait 10000) then failwith "test open barrier timed out"
+        new RendererProcess.RendererSession(RendererProcess.startInfo (), TimeSpan.FromSeconds 5.0)
+    let w = MainWindow(RendererProcess.RendererEngine(launch), Width = 900.0, Height = 700.0)
+    w.ConfirmClose <- fun _ -> Threading.Tasks.Task.FromResult Dialogs.All
+    try
+        w.Show()
+        openFile w (synthetic "loaded-before-cloud.pdf" inkDoc)
+        let healthy = w.Canvas.Document
+        release.Reset()
+        let opening = w.OpenFileAsync(synthetic "waiting-cloud.pdf" inkDoc)
+        Assert.Equal(Opening "waiting-cloud.pdf", w.Centre)
+        pumpFor 20
+        Assert.True((loadingProgress w).IsEffectivelyVisible)
+        w.SelectTab 0
+        Assert.Equal(DocumentShown, w.Centre)
+        Assert.Same(healthy, w.Canvas.Document)
+        Assert.False((loadingProgress w).IsEffectivelyVisible)
+        w.SelectTab 1
+        Assert.Equal(Opening "waiting-cloud.pdf", w.Centre)
+        Assert.True((loadingProgress w).IsEffectivelyVisible)
+        w.CloseDocument()
+        release.Set()
+        pumpTask opening
+        Assert.Equal(1, w.TabCount)
+        Assert.Equal(DocumentShown, w.Centre)
+        Assert.Same(healthy, w.Canvas.Document)
+        Assert.False((loadingProgress w).IsEffectivelyVisible)
+    finally
+        release.Set()
+        w.Close()

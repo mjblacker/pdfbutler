@@ -14,6 +14,7 @@ open Avalonia.Input
 open Avalonia.Platform
 open Avalonia.Threading
 open PdfButler.Pdfium
+open PdfButler.App.RendererProcess
 open PdfButler.App.MainWindow
 open PdfButler.TestSupport
 open Xunit
@@ -66,13 +67,12 @@ let pumpFor (ms: int) =
         AvaloniaHeadlessPlatform.ForceRenderTimerTick 1
         spin 2
 
-/// Wait until no renders are in flight and the engine queue stays empty for a few rounds.
+/// Wait until no renders are in flight for a few rounds (the engine now lives in a helper).
 let settle (w: MainWindow) =
     let mutable quiet = 0
     pumpUntil "renders to settle" (fun () ->
         let busy =
-            PdfEngine.Shared.QueueLength > 0
-            || (w.Canvas.Renderer |> Option.exists (fun r -> r.InFlightCount > 0))
+            (w.Canvas.Renderer |> Option.exists (fun r -> r.InFlightCount > 0))
         quiet <- if busy then 0 else quiet + 1
         quiet >= 5)
     Dispatcher.UIThread.RunJobs()
@@ -87,7 +87,7 @@ type Calls() =
 
 /// A shown main window whose dialogs and launcher are replaced by recorders (nothing is ever launched).
 let newWindow () =
-    let w = MainWindow(PdfEngine.Shared, Width = 900.0, Height = 700.0)
+    let w = MainWindow(RendererEngine.Shared, Width = 900.0, Height = 700.0)
     let calls = Calls()
     w.ConfirmClose <- fun _ -> Task.FromResult PdfButler.App.Dialogs.All
     w.AskPassword <-

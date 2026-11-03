@@ -73,6 +73,13 @@ let ``go to page, next and previous`` () =
     Assert.Equal(0, currentPage (update (GoToPage -3) s))
 
 [<Fact>]
+let ``show page goes to a page without adding a back entry`` () =
+    let s = start 10 |> update (ShowPage 6)
+    Assert.Equal(6, currentPage s)
+    Assert.False(History.canGoBack s.History)
+    Assert.Equal(9, currentPage (update (ShowPage 99) s))
+
+[<Fact>]
 let ``back and forward retrace jumps but not plain scrolling`` () =
     let s0 = start 40
     let s1 = s0 |> update (GoToPage 10)

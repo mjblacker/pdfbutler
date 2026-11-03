@@ -17,6 +17,7 @@ open Avalonia.Styling
 open Avalonia.Threading
 open PdfButler.Core
 open PdfButler.Pdfium
+open PdfButler.App.RendererProcess
 open PdfButler.App.PageRenderer
 
 type CorePoint = PdfButler.Core.Point
@@ -38,7 +39,7 @@ type private Drag =
 type PageCanvas() as this =
     inherit Control()
 
-    let mutable doc: PdfDocument = null
+    let mutable doc: RemoteDocument = null
     let mutable renderer: Renderer option = None
     let mutable state: Viewer.State = Viewer.create [||] { W = 800.0; H = 600.0 }
     let texts = Dictionary<int, PageText>()
@@ -52,12 +53,14 @@ type PageCanvas() as this =
     let mutable searchOptions = Search.defaultOptions
     let mutable updateQueued = false
     let mutable firstPresented = false
+    let mutable initialContentReady = false
     let mutable active = true
 
     let stateChanged = Event<unit>()
     let linkActivated = Event<LinkTarget>()
     let searchChanged = Event<SearchInfo>()
     let selectionChanged = Event<unit>()
+    let initialContentReadyEvent = Event<unit>()
 
     let renderScaling () =
         match TopLevel.GetTopLevel this with
@@ -232,6 +235,9 @@ type PageCanvas() as this =
     member _.SearchChanged = searchChanged.Publish
     [<CLIEvent>]
     member _.SelectionChanged = selectionChanged.Publish
+    /// First visible pixels or a page-error placeholder, not merely metadata being available.
+    [<CLIEvent>]
+    member _.InitialContentReady = initialContentReadyEvent.Publish
 
     member _.Document = doc
     member _.State = state
@@ -250,13 +256,14 @@ type PageCanvas() as this =
             scheduleUpdate ()
 
     /// Attach a newly opened document (the caller owns closing the previous one).
-    member this.SetDocument(d: PdfDocument) =
+    member this.SetDocument(d: RemoteDocument) =
         this.ClearSearch()
         renderer |> Option.iter (fun r -> (r :> IDisposable).Dispose())
         texts.Clear(); textRequests.Clear(); links.Clear(); linkRequests.Clear()
         selection <- None
         doc <- d
         firstPresented <- false
+        initialContentReady <- false
         if isNull d then
             renderer <- None
             state <- Viewer.create [||] state.Viewport
@@ -395,6 +402,7 @@ type PageCanvas() as this =
             let scale = dpp () * rs
             let sk = scaleKey scale
             let mutable anyExact = false
+            let mutable anyContent = false
             match Layout.visibleRange state.Layout state.Offset.Y state.Viewport.H with
             | None -> ()
             | Some(a, b) ->
@@ -407,6 +415,7 @@ type PageCanvas() as this =
                     use _clip = ctx.PushClip pageRect
                     for t in r.Fallback(page, state.Rotation, sk) do
                         drawTile ctx o t
+                        anyContent <- true
                     // Exact tiles for the visible region.
                     let vis = { X = 0; Y = 0; W = Int32.MaxValue / 2; H = Int32.MaxValue / 2 }
                     let vx0 = max 0.0 (-o.X) * rs
@@ -417,13 +426,21 @@ type PageCanvas() as this =
                         | Some t ->
                             drawTile ctx o t
                             anyExact <- true
+                            anyContent <- true
                         | None -> ()
                     match r.PageError page with
                     | Some msg ->
+                        anyContent <- true
                         let ft = FormattedText(msg, Globalization.CultureInfo.CurrentUICulture, FlowDirection.LeftToRight, Typeface.Default, 14.0, errorBrush)
                         ctx.DrawText(ft, Avalonia.Point(o.X + 16.0, o.Y + 16.0))
                     | None -> ()
                     drawHighlights ctx page
+            if anyContent && not initialContentReady then
+                initialContentReady <- true
+                let displayed = doc
+                // Change the loading overlay after this frame, not inside the render pass.
+                Dispatcher.UIThread.Post(fun () ->
+                    if obj.ReferenceEquals(displayed, doc) then initialContentReadyEvent.Trigger())
             if anyExact && not firstPresented then
                 firstPresented <- true
                 Diagnostics.mark "first-page-presented"

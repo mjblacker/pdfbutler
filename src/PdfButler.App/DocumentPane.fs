@@ -20,12 +20,13 @@ open Avalonia.Threading
 open Avalonia.VisualTree
 open PdfButler.Core
 open PdfButler.Pdfium
+open PdfButler.App.RendererProcess
 open PdfButler.App.PdfView
 
 /// Schemes that may be opened (after confirmation). Everything else, including file:, is refused.
 let allowedSchemes = set [ "http"; "https"; "mailto" ]
 
-type DocumentPane(host: Window, engine: PdfEngine, requestOpen: unit -> unit) as this =
+type DocumentPane(host: Window, engine: RendererEngine, requestOpen: unit -> unit) as this =
     inherit ContentControl()
 
     let view = DocumentView()
@@ -35,6 +36,9 @@ type DocumentPane(host: Window, engine: PdfEngine, requestOpen: unit -> unit) as
     let mutable labels: string option[] = [||]
     let mutable lastSearch = ("", false)
     let mutable active = true
+    let mutable currentPath: string option = None
+    let mutable openCts: CancellationTokenSource option = None
+    let mutable loadingFirstPage = false
 
     // ---- helpers -----------------------------------------------------------------------------
 
@@ -149,13 +153,34 @@ type DocumentPane(host: Window, engine: PdfEngine, requestOpen: unit -> unit) as
 
     let errorTitle = TextBlock(FontSize = 18.0, FontWeight = FontWeight.SemiBold, TextWrapping = TextWrapping.Wrap)
     let errorMessage = TextBlock(TextWrapping = TextWrapping.Wrap)
+    let retryButton = Button(Content = "Reopen PDF", HorizontalAlignment = HorizontalAlignment.Left)
 
     let errorPanel =
         let p = StackPanel(Spacing = 8.0, MaxWidth = 560.0, HorizontalAlignment = HorizontalAlignment.Center,
                            VerticalAlignment = VerticalAlignment.Center, IsVisible = false)
         p.Children.Add errorTitle
         p.Children.Add errorMessage
+        p.Children.Add retryButton
         AutomationProperties.SetName(p, "Error")
+        p
+
+    let loadingTitle = TextBlock(FontSize = 18.0, FontWeight = FontWeight.SemiBold,
+                                 TextWrapping = TextWrapping.Wrap, TextAlignment = TextAlignment.Center)
+    let loadingProgress = ProgressBar(Width = 240.0, Height = 4.0, IsIndeterminate = false,
+                                     HorizontalAlignment = HorizontalAlignment.Center)
+    let loadingPanel =
+        let p = StackPanel(Spacing = 14.0, MaxWidth = 440.0, Margin = Thickness 24.0,
+                           HorizontalAlignment = HorizontalAlignment.Center,
+                           VerticalAlignment = VerticalAlignment.Center, IsVisible = false,
+                           IsHitTestVisible = false)
+        p.Children.Add loadingTitle
+        p.Children.Add loadingProgress
+        p.Children.Add(TextBlock(Text = "Cloud-backed files may take longer if they need to download first.",
+                                 TextWrapping = TextWrapping.Wrap, TextAlignment = TextAlignment.Center, Opacity = 0.7))
+        p.Children.Add(TextBlock(Text = "You can switch tabs or close this tab while it loads.",
+                                 TextWrapping = TextWrapping.Wrap, TextAlignment = TextAlignment.Center, Opacity = 0.7))
+        AutomationProperties.SetName(p, "Loading document")
+        AutomationProperties.SetName(loadingProgress, "Loading PDF")
         p
 
     let centrePanel =
@@ -163,6 +188,7 @@ type DocumentPane(host: Window, engine: PdfEngine, requestOpen: unit -> unit) as
         g.Children.Add view
         g.Children.Add welcome
         g.Children.Add errorPanel
+        g.Children.Add loadingPanel
         g
 
     // ---- status bar -------------------------------------------------------------------------------------
@@ -192,13 +218,20 @@ type DocumentPane(host: Window, engine: PdfEngine, requestOpen: unit -> unit) as
 
     // ---- state -> controls ---------------------------------------------------------------------------
 
-    let hasDoc () = not (isNull canvas.Document)
+    let hasDoc () = centre = DocumentShown && not (isNull canvas.Document)
 
     let setCentre (c: Centre) =
         centre <- c
         view.IsVisible <- (c = DocumentShown)
         welcome.IsVisible <- (c = Welcome)
         errorPanel.IsVisible <- (match c with OpenFailed _ -> true | _ -> false)
+        let loading =
+            match c with
+            | Opening name -> loadingTitle.Text <- $"Opening “{name}”…"; true
+            | DocumentShown when loadingFirstPage -> loadingTitle.Text <- "Loading first page…"; true
+            | _ -> false
+        loadingPanel.IsVisible <- loading
+        loadingProgress.IsIndeterminate <- loading
         match c with
         | OpenFailed(name, message) ->
             errorTitle.Text <- $"“{name}” could not be opened"
@@ -310,6 +343,17 @@ type DocumentPane(host: Window, engine: PdfEngine, requestOpen: unit -> unit) as
         canvas.ClearSearch()
         focusCanvas ()
 
+    let failed name message =
+        let old = canvas.Document
+        closeSearch ()
+        canvas.SetDocument null
+        labels <- [||]
+        setOutline []
+        noticeBar.IsVisible <- false
+        setCentre (OpenFailed(name, message))
+        refreshState ()
+        if not (isNull old) then old.CloseAsync() |> ignore
+
     let nextHit forward =
         if searchBar.IsVisible then
             runSearch ()
@@ -373,6 +417,7 @@ type DocumentPane(host: Window, engine: PdfEngine, requestOpen: unit -> unit) as
                 f ()
                 if hasDoc () then focusCanvas ())
         openButton.Click.Add(fun _ -> requestOpen ())
+        retryButton.Click.Add(fun _ -> currentPath |> Option.iter (fun path -> this.OpenFileAsync path |> ignore))
         afterClick backButton (fun () -> canvas.Dispatch Viewer.Back)
         afterClick forwardButton (fun () -> canvas.Dispatch Viewer.Forward)
         afterClick prevButton (fun () -> canvas.Dispatch Viewer.PreviousPage)
@@ -442,6 +487,9 @@ type DocumentPane(host: Window, engine: PdfEngine, requestOpen: unit -> unit) as
 
         // Canvas.
         canvas.StateChanged.Add(fun () -> refreshState ())
+        canvas.InitialContentReady.Add(fun () ->
+            loadingFirstPage <- false
+            setCentre centre)
         canvas.LinkActivated.Add handleLink
         let copyItem = MenuItem(Header = "Copy", InputGesture = KeyGesture(Key.C, KeyModifiers.Control))
         copyItem.Click.Add(fun _ -> copySelection ())
@@ -470,6 +518,9 @@ type DocumentPane(host: Window, engine: PdfEngine, requestOpen: unit -> unit) as
     member val LaunchUri: System.Uri -> Task<bool> =
         (fun uri -> host.Launcher.LaunchUriAsync uri) with get, set
 
+    /// Zoom applied to each newly opened document (from settings).
+    member val DefaultZoom: Settings.DefaultZoom = Settings.ActualSize with get, set
+
     // ---- public surface (also used by tests) ----------------------------------------------------------
 
     member _.View = view
@@ -488,6 +539,8 @@ type DocumentPane(host: Window, engine: PdfEngine, requestOpen: unit -> unit) as
     member _.IsSearchOpen = searchBar.IsVisible
     member _.RunSearchNow() = runSearch ()
     member _.ShowMessage(message) = showMessage message
+    /// The 0-based page at the top of the view, when a document is shown.
+    member _.CurrentPageIndex = if hasDoc () then Some canvas.CurrentPage else None
     member _.SetActive(value) =
         active <- value
         canvas.SetActive value
@@ -496,6 +549,8 @@ type DocumentPane(host: Window, engine: PdfEngine, requestOpen: unit -> unit) as
     /// Close the current document and return to the welcome panel.
     member _.CloseDocument() =
         openGeneration <- openGeneration + 1
+        openCts |> Option.iter (fun c -> c.Cancel())
+        currentPath <- None
         let old = canvas.Document
         closeSearch ()
         canvas.SetDocument null
@@ -507,31 +562,51 @@ type DocumentPane(host: Window, engine: PdfEngine, requestOpen: unit -> unit) as
         if not (isNull old) then old.CloseAsync() |> ignore
 
     /// Open a file, asking for a password if needed. A newer open supersedes an older one.
-    member _.OpenFileAsync(path: string) : Task =
+    /// `startPage` (0-based) is shown without a history entry, for restored tabs.
+    member _.OpenFileAsync(path: string, ?startPage: int) : Task =
         openGeneration <- openGeneration + 1
+        openCts |> Option.iter (fun c -> c.Cancel())
+        let cts = new CancellationTokenSource()
+        openCts <- Some cts
+        currentPath <- Some path
         let gen = openGeneration
         let name = fileName path
         Diagnostics.mark "open-start"
-        let failed (message: string) =
-            let old = canvas.Document
-            closeSearch ()
-            canvas.SetDocument null
-            labels <- [||]
-            setOutline []
-            noticeBar.IsVisible <- false
-            setCentre (OpenFailed(name, message))
-            refreshState ()
-            if not (isNull old) then old.CloseAsync() |> ignore
+        // Show feedback before starting any helper or file I/O (cloud hydration can block it).
+        let previous = canvas.Document
+        closeSearch ()
+        canvas.SetDocument null
+        loadingFirstPage <- false
+        labels <- [||]
+        setOutline []
+        noticeBar.IsVisible <- false
+        showMessage ""
+        setCentre (Opening name)
+        refreshState ()
+        if not (isNull previous) then previous.CloseAsync() |> ignore
+        let failed = failed name
 
-        let attach (d: PdfDocument) =
+        let attach (d: RemoteDocument) =
             Diagnostics.mark "document-opened"
             let old = canvas.Document
             closeSearch ()
             labels <- d.Info.Pages |> Array.map (fun p -> p.Label)
             setOutline []
+            loadingFirstPage <- true
             setCentre DocumentShown
             // Detach the old document from the view before closing it.
             canvas.SetDocument d
+            match this.DefaultZoom with
+            | Settings.FitWidth -> canvas.Dispatch(Viewer.SetMode Viewer.FitWidth)
+            | Settings.FitPage -> canvas.Dispatch(Viewer.SetMode Viewer.FitPage)
+            | Settings.ActualSize -> ()
+            startPage |> Option.iter (fun p -> if p > 0 then canvas.Dispatch(Viewer.ShowPage p))
+            let rendererFailed message =
+                Dispatcher.UIThread.Post(fun () ->
+                    if obj.ReferenceEquals(canvas.Document, d) then failed message)
+            d.Failed.Add rendererFailed
+            // Covers a helper exit between the open reply and subscribing to the event.
+            d.Failure |> Option.iter rendererFailed
             if not (isNull old) then old.CloseAsync() |> ignore
             showNotices d.Info
             refreshState ()
@@ -541,14 +616,14 @@ type DocumentPane(host: Window, engine: PdfEngine, requestOpen: unit -> unit) as
                     if obj.ReferenceEquals(canvas.Document, d) && t.IsCompletedSuccessfully then setOutline t.Result))
             |> ignore
 
-        task {
+        let opening = task {
             let mutable password: string option = None
             let mutable finished = false
             while not finished do
                 let! result =
                     task {
                         try
-                            let! r = engine.OpenAsync(path, password, CancellationToken.None)
+                            let! r = engine.OpenAsync(path, password, cts.Token)
                             return Ok r
                         with e ->
                             return Error e
@@ -579,6 +654,12 @@ type DocumentPane(host: Window, engine: PdfEngine, requestOpen: unit -> unit) as
                     | Error e ->
                         failed $"The PDF engine is not available ({e.GetBaseException().Message})."
                         finished <- true
+        }
+        task {
+            try do! opening
+            finally
+                if openCts |> Option.exists (fun c -> obj.ReferenceEquals(c, cts)) then openCts <- None
+                cts.Dispose()
         }
 
     // ---- keyboard -------------------------------------------------------------------------------------

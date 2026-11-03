@@ -30,6 +30,8 @@ type Msg =
     | RotateClockwise
     | RotateCounterClockwise
     | GoToPage of int
+    /// Show a page without recording history (restoring a previous session).
+    | ShowPage of int
     | GoToDestination of DisplayDestination
     | NextPage
     | PreviousPage
@@ -172,6 +174,7 @@ let rec update (msg: Msg) (s: State) : State =
         rezoom s z r None
 
     | GoToPage n -> withHistory s (fun s -> scrollToPageTop s n)
+    | ShowPage n -> scrollToPageTop s n
     | GoToDestination d ->
         withHistory s (fun s ->
             if s.Pages.Length = 0 then s

@@ -11,6 +11,7 @@ open Avalonia.Styling
 open Avalonia.Themes.Fluent
 open Avalonia.Threading
 open PdfButler.Pdfium
+open PdfButler.App.RendererProcess
 open PdfButler.App.MainWindow
 
 /// Command line: `PdfButler [file.pdf ...]` or `PdfButler --measure file.pdf`.
@@ -43,8 +44,13 @@ type App() =
         match this.ApplicationLifetime with
         | :? IClassicDesktopStyleApplicationLifetime as desktop ->
             let options = parseArgs (if isNull desktop.Args then [||] else desktop.Args)
-            let window = MainWindow(PdfEngine.Shared)
-            if not options.Measure then WindowPlacement.attach window
+            let window = MainWindow(RendererEngine.Shared)
+            if not options.Measure then
+                WindowPlacement.attach window
+                // --measure runs with defaults and never reads or writes preferences.
+                window.ApplySettings(SettingsStore.loadSettings ())
+                window.SaveSettings <- SettingsStore.saveSettings
+                window.SaveSession <- SettingsStore.saveSession
             desktop.MainWindow <- window
             let drainActivations () =
                 instance |> Option.iter (fun host ->
@@ -57,10 +63,15 @@ type App() =
             let finish (code: int) =
                 if not finished then
                     finished <- true
+                    let rendererWorkingSet, rendererPrivate =
+                        if isNull window.Canvas.Document then 0L, 0L
+                        else window.Canvas.Document.MemoryBytes
                     let json =
                         Diagnostics.snapshotJson
                             [ "file", box (options.Files |> Array.tryHead |> Option.defaultValue "")
                               "exitCode", box code
+                              "rendererWorkingSetMB", box (Math.Round(float rendererWorkingSet / 1048576.0, 1))
+                              "rendererPrivateMB", box (Math.Round(float rendererPrivate / 1048576.0, 1))
                               "cachedBytes", box (window.Canvas.Renderer |> Option.map (fun r -> r.CachedBytes) |> Option.defaultValue 0L) ]
                     Console.Out.WriteLine json
                     Console.Out.Flush()
@@ -76,11 +87,17 @@ type App() =
                 | Some f ->
                     task {
                         if options.Measure then do! window.OpenFileAsync f
-                        else do! window.OpenFilesAsync options.Files
+                        else
+                            if window.Settings.RestoreSession then
+                                do! window.RestoreSessionAsync(SettingsStore.loadSession (), false)
+                            do! window.OpenFilesAsync options.Files
                         // An open failure never presents a page: report it and stop.
                         if options.Measure && window.Centre <> DocumentShown then finish 2
                     } |> ignore
-                | None -> if options.Measure then finish 1
+                | None ->
+                    if options.Measure then finish 1
+                    elif window.Settings.RestoreSession then
+                        window.RestoreSessionAsync(SettingsStore.loadSession (), true) |> ignore
                 drainActivations ())
         | _ -> ()
         base.OnFrameworkInitializationCompleted()
@@ -88,16 +105,13 @@ type App() =
 let buildAvaloniaApp () =
     AppBuilder.Configure<App>().UsePlatformDetect()
 
-[<EntryPoint; STAThread>]
-let main argv =
+let private runApp argv =
     Diagnostics.mark "main"
     let options = parseArgs argv
     if OperatingSystem.IsWindows() && options.Measure then
         // WinExe has no console: write the measurement to the one we were started from.
         AttachConsole -1 |> ignore
     let run () =
-        // Load and initialise PDFium on its owner thread while the UI starts.
-        Task.Run(fun () -> try PdfEngine.Shared.EnsureReady() with _ -> ()) |> ignore
         buildAvaloniaApp().StartWithClassicDesktopLifetime(argv)
     if OperatingSystem.IsWindows() && not options.Measure then
         use host = new SingleInstance.Instance()
@@ -105,6 +119,11 @@ let main argv =
             instance <- Some host
             run ()
         else
-            let files = options.Files |> Array.truncate maxTabs |> Array.map Path.GetFullPath
+            let files = options.Files |> Array.truncate PdfButler.Core.Settings.maxOpenFilesLimit |> Array.map Path.GetFullPath
             if host.ForwardAsync(files).GetAwaiter().GetResult() then 0 else 2
     else run ()
+
+[<EntryPoint; STAThread>]
+let main argv =
+    if argv = [| "--renderer" |] then RendererHost.run ()
+    else runApp argv
